@@ -13,3 +13,14 @@ uvicorn app.main:app --reload
 ```
 
 Then open http://127.0.0.1:8000/health.
+
+## Audit a page
+
+One-time browser install, then run an audit; results are saved as JSON under `backend/data/results/`.
+
+```
+playwright install chromium
+python -m app.browser https://example.com
+```
+
+Run the tests with `pytest`.
