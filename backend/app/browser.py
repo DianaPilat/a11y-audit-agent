@@ -48,6 +48,9 @@ async def run_axe(page: Page) -> dict:
     }
 
 
+WCAG_CRITERION = re.compile(r"^wcag\d{3,}$")
+
+
 def _compact(rules: list[dict]) -> list[dict]:
     return [
         {
@@ -55,8 +58,13 @@ def _compact(rules: list[dict]) -> list[dict]:
             "impact": r["impact"],
             "help": r["help"],
             "help_url": r["helpUrl"],
-            "tags": [t for t in r["tags"] if t.startswith("wcag") or t.startswith("section508")],
-            "nodes": [{"target": n["target"], "html": n["html"]} for n in r["nodes"]],
+            "tags": r["tags"],
+            "category": "wcag" if any(t.startswith("wcag") for t in r["tags"]) else "best-practice",
+            "wcag_criteria": [t for t in r["tags"] if WCAG_CRITERION.match(t)],
+            "nodes": [
+                {"target": n["target"], "html": n["html"], "failureSummary": n.get("failureSummary")}
+                for n in r["nodes"]
+            ],
         }
         for r in rules
     ]
