@@ -4,3 +4,4 @@ pytest
 httpx
 playwright
 pytest-asyncio
+mcp

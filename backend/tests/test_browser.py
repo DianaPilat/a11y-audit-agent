@@ -95,3 +95,15 @@ async def test_incomplete_results_are_captured_with_same_fields():
     node = contrast["nodes"][0]
     assert node["target"] and node["html"] and node["failureSummary"]
 
+
+async def test_list_links_and_dom_snippet_helpers():
+    from app.browser import get_dom_snippet, list_links
+
+    async with load_page((FIXTURES / "links.html").as_uri()) as page:
+        links = await list_links(page)
+        assert [Path(u).name for u in links] == ["about.html", "contact.html"]
+        assert await list_links(page, limit=1) == links[:1]
+        assert (await get_dom_snippet(page, "h1")) == "<h1>Links</h1>"
+        assert await get_dom_snippet(page, "#missing") is None
+        truncated = await get_dom_snippet(page, "main", max_chars=20)
+        assert truncated.startswith("<main>") and "truncated" in truncated

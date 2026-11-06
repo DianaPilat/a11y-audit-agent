@@ -70,6 +70,35 @@ def _compact(rules: list[dict]) -> list[dict]:
     ]
 
 
+MAX_LINKS = 100
+MAX_SNIPPET_CHARS = 1_000
+
+_LINKS_JS = """
+() => [...document.querySelectorAll('a[href]')]
+    .map(a => new URL(a.href))
+    .filter(u => ['http:', 'https:', 'file:'].includes(u.protocol)
+        && u.protocol === location.protocol && u.host === location.host)
+    .map(u => { u.hash = ''; return u.href; })
+"""
+
+
+async def list_links(page: Page, limit: int = MAX_LINKS) -> list[str]:
+    """Return unique same-origin links on the page (fragments stripped), in document order."""
+    hrefs = await page.evaluate(_LINKS_JS)
+    return list(dict.fromkeys(hrefs))[:limit]
+
+
+async def get_dom_snippet(page: Page, selector: str, max_chars: int = MAX_SNIPPET_CHARS) -> str | None:
+    """Return the outer HTML of the first element matching selector, truncated; None if no match."""
+    locator = page.locator(selector)
+    if await locator.count() == 0:
+        return None
+    html = await locator.first.evaluate("el => el.outerHTML")
+    if len(html) > max_chars:
+        return html[:max_chars] + f"... [truncated, {len(html)} chars total]"
+    return html
+
+
 def save_results(url: str, results: dict, out_dir: Path = DEFAULT_OUT_DIR) -> Path:
     """Write results as JSON, named after the URL, and return the file path."""
     out_dir.mkdir(parents=True, exist_ok=True)
