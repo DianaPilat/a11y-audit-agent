@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "a11y-browser": {
+      "command": "C:\\Users\\diana\\a11y-audit-agent\\backend\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "app.mcp_server"],
+      "env": {
+        "PYTHONPATH": "C:\\Users\\diana\\a11y-audit-agent\\backend"
+      }
+    }
+  }
+}
