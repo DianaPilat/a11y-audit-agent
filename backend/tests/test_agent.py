@@ -5,6 +5,7 @@ import pytest
 from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock, ToolUseBlock
 
 from app import agent
+from app.findings import FindingStore
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -18,14 +19,16 @@ def _result(**kw) -> ResultMessage:
 
 
 def test_build_options_scopes_tools():
-    opts = agent.build_options()
+    opts = agent.build_options(FindingStore(":memory:"), "a1", "http://x")
     assert opts.tools == []
     assert opts.allowed_tools == [
         "mcp__a11y-browser__navigate",
         "mcp__a11y-browser__list_links",
         "mcp__a11y-browser__run_axe",
         "mcp__a11y-browser__get_dom_snippet",
+        "mcp__findings__save_finding",
     ]
+    assert set(opts.mcp_servers) == {"a11y-browser", "findings"}
     server = opts.mcp_servers["a11y-browser"]
     assert server["args"] == ["-m", "app.mcp_server"]
     assert Path(server["env"]["PYTHONPATH"]) == agent.BACKEND
@@ -46,12 +49,14 @@ async def test_audit_page_collects_report_tools_and_cost(monkeypatch):
         yield _result()
 
     monkeypatch.setattr(agent, "query", fake_query)
-    run = await agent.audit_page("http://x")
+    store = FindingStore(":memory:")
+    run = await agent.audit_page("http://x", store=store)
     assert "http://x" in seen["prompt"]
     assert run.report == "final report"
     assert run.tool_calls == ["mcp__a11y-browser__navigate"]
     assert run.cost_usd == 0.01
     assert run.usage == {"input_tokens": 5}
+    assert run.findings == []
 
 
 @pytest.mark.live
@@ -62,3 +67,5 @@ async def test_live_audit_bad_page():
         assert rule in run.report
     assert "mcp__a11y-browser__navigate" in run.tool_calls
     assert "mcp__a11y-browser__run_axe" in run.tool_calls
+    assert "mcp__findings__save_finding" in run.tool_calls
+    assert {f["rule_id"] for f in run.findings} >= {"image-alt", "label", "color-contrast"}

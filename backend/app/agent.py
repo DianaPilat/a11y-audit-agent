@@ -7,6 +7,7 @@ report. Holds no browser logic; all page access goes through the MCP tools.
 import asyncio
 import logging
 import sys
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,8 @@ from claude_agent_sdk import (
     ToolUseBlock,
     query,
 )
+
+from app.findings import SAVE_FINDING_TOOL, SERVER_NAME as FINDINGS_SERVER, FindingStore, build_findings_server
 
 log = logging.getLogger("agent")
 
@@ -36,7 +39,7 @@ SERVER_CONFIG = {
 ALLOWED_TOOLS = [
     f"mcp__{SERVER_NAME}__{name}"
     for name in ("navigate", "list_links", "run_axe", "get_dom_snippet")
-]
+] + [SAVE_FINDING_TOOL]
 
 SYSTEM_PROMPT = """\
 You audit one web page for accessibility (WCAG 2.1 AA / Section 508).
@@ -45,11 +48,14 @@ Steps:
 1. Call navigate with the URL.
 2. Call run_axe.
 3. Call get_dom_snippet only for flagged elements you need to see to explain the issue.
+4. Call save_finding once per issue: rule id, WCAG criterion number (e.g. 1.1.1),
+   severity (axe impact), the affected element's selector, and a plain-language
+   explanation of who it affects and how to fix it. If it returns errors, fix the
+   fields and call it again.
 
-Report only issues axe reported. Do not invent issues. Group nodes of the same rule
-into one entry. For each issue give: rule id, WCAG criterion, impact, the affected
-element (selector), and a plain-language explanation of who it affects and how to fix it.
-If axe reports no violations, say so plainly.
+Save only issues axe reported. Do not invent issues. Group nodes of the same rule into
+one finding, using the first node's selector. Finish with a short summary of what you saved.
+If axe reports no violations, say so plainly and save nothing.
 """
 
 
@@ -60,13 +66,20 @@ class AuditRun:
     tool_calls: list[str] = field(default_factory=list)
     cost_usd: float | None = None
     usage: dict[str, Any] | None = None
+    audit_id: str = ""
+    findings: list[dict[str, Any]] = field(default_factory=list)
 
 
-def build_options(model: str = DEFAULT_MODEL) -> ClaudeAgentOptions:
+def build_options(
+    store: FindingStore, audit_id: str, url: str, model: str = DEFAULT_MODEL
+) -> ClaudeAgentOptions:
     return ClaudeAgentOptions(
         model=model,
         system_prompt=SYSTEM_PROMPT,
-        mcp_servers={SERVER_NAME: SERVER_CONFIG},
+        mcp_servers={
+            SERVER_NAME: SERVER_CONFIG,
+            FINDINGS_SERVER: build_findings_server(store, audit_id, url),
+        },
         strict_mcp_config=True,
         tools=[],  # disable built-in tools (Bash, file writes, ...)
         allowed_tools=ALLOWED_TOOLS,
@@ -76,10 +89,14 @@ def build_options(model: str = DEFAULT_MODEL) -> ClaudeAgentOptions:
     )
 
 
-async def audit_page(url: str, model: str = DEFAULT_MODEL) -> AuditRun:
-    run = AuditRun(url=url)
+async def audit_page(
+    url: str, model: str = DEFAULT_MODEL, store: FindingStore | None = None
+) -> AuditRun:
+    store = store or FindingStore()
+    run = AuditRun(url=url, audit_id=uuid.uuid4().hex)
     texts: list[str] = []
-    async for message in query(prompt=f"Audit this page: {url}", options=build_options(model)):
+    options = build_options(store, run.audit_id, url, model)
+    async for message in query(prompt=f"Audit this page: {url}", options=options):
         if isinstance(message, AssistantMessage):
             for block in message.content:
                 if isinstance(block, TextBlock):

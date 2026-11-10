@@ -103,7 +103,7 @@ Gate: one page audited, with structured output.
 - [x] Wrap the week 1 functions as the `a11y-browser` MCP server: `navigate`, `list_links`, `run_axe`, `get_dom_snippet`
 - [x] Test the server with the MCP Inspector and from Claude Code
 - [x] Agent SDK client connects to the server and audits one page
-- [ ] `save_finding` tool with a schema: WCAG criterion, severity, element, explanation
+- [x] `save_finding` tool with a schema: WCAG criterion, severity, element, explanation
 
 ### Phase 2 — Core agent (weeks 3–4)
 
