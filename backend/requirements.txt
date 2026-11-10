@@ -5,3 +5,4 @@ httpx
 playwright
 pytest-asyncio
 mcp
+claude-agent-sdk

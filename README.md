@@ -23,4 +23,12 @@ playwright install chromium
 python -m app.browser https://example.com
 ```
 
-Run the tests with `pytest`.
+## Run the agent
+
+The agent connects to the `a11y-browser` MCP server and writes a plain-language report for one page (uses the Claude API, a few cents per run):
+
+```
+python -m app.agent https://example.com
+```
+
+Run the tests with `pytest`. The live agent test is skipped unless `RUN_LIVE=1` is set.
