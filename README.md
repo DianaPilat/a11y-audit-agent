@@ -25,17 +25,17 @@ python -m app.browser https://example.com
 
 ## Run the agent
 
-The agent connects to the `a11y-browser` MCP server, writes a plain-language report for one page, and saves each issue with the `save_finding` tool (uses the Claude API, a few cents per run).
+An orchestrator delegates to a crawler subagent (finds up to `max_pages` pages) and an auditor subagent (audits one page at a time through the `a11y-browser` MCP server and saves each issue with `save_finding`). Uses the Claude API, a few cents per run.
 
 Run it from the `backend` folder with the venv active:
 
 ```
 cd backend
 .venv\Scripts\activate
-python -m app.agent https://example.com
+python -m app.agent https://example.com 5
 ```
 
-The run prints the report, then `saved N findings (audit <id>)`. Findings are stored in `backend/data/findings.db` (SQLite).
+The last argument is the page limit (default 20). The run prints the report, then `saved N findings (audit <id>)`. Findings are stored in `backend/data/findings.db` (SQLite).
 
 ### View saved findings
 

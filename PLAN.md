@@ -26,12 +26,12 @@ Do not build these unless this file is updated:
 
 ## Architecture
 
-The agent is built with the **Claude Agent SDK (Python)**, not raw API calls. An orchestrator delegates to three subagents. Browser and axe-core access comes only through our own MCP server.
+The agent is built with the **Claude Agent SDK (Python)**, not raw API calls. A Python orchestrator (plain code, not an LLM) runs three subagents in turn. It was an LLM at first, but it sometimes stopped after one page; a plain loop guarantees every crawled page is audited. Browser and axe-core access comes only through our own MCP server.
 
 Flow:
 
-1. **Site URL** goes to the **orchestrator**.
-2. The orchestrator delegates to:
+1. **Site URL** goes to the **orchestrator** (Python code).
+2. The orchestrator runs:
    - **Crawler subagent** — finds up to 20 pages and returns the page list. Uses only the MCP server's navigation tools. Runs on the smallest model.
    - **Auditor subagent** — for each page, runs axe-core through the MCP server, makes judgment calls rules can't (alt text quality, link text meaning, heading structure, form label clarity), maps each issue with `lookup_wcag`, and saves it with `save_finding`.
    - **Ticket writer subagent** — drafts a ticket with a suggested code fix for each saved finding, using `create_ticket`.
@@ -41,7 +41,7 @@ Flow:
 
 ### Agent rules
 
-- The orchestrator has no browser tools of its own; it only delegates.
+- The orchestrator is plain Python: it loops over the crawler's pages and starts one auditor run per page, sequentially (the browser server holds one page).
 - Each subagent gets only the tools listed for it (define them with `AgentDefinition`).
 - Allow only our own tools. Disable the SDK's built-in tools such as Bash and file writes.
 - The Agent SDK runs on the Claude Code runtime; the Docker image must include it (see the SDK's install notes).
@@ -68,7 +68,7 @@ Flow:
 | Layer           | Choice                                                                     |
 | --------------- | -------------------------------------------------------------------------- |
 | Backend         | Python + FastAPI                                                           |
-| Agent           | Claude Agent SDK (Python): orchestrator + 3 subagents                      |
+| Agent           | Claude Agent SDK (Python): Python orchestrator + 3 subagents                      |
 | Browser         | Playwright (Python) + axe-core, behind our own MCP server (MCP Python SDK) |
 | Retrieval       | Local embeddings (sentence-transformers) over WCAG success criteria        |
 | Storage         | SQLite to start, Postgres when deployed                                    |
@@ -111,8 +111,8 @@ Gate: a 20-page site audited end to end.
 
 **Week 3 — Subagents and retrieval**
 
-- [ ] Orchestrator plus crawler and auditor subagents, each with scoped tools
-- [ ] Crawler finds up to 20 pages; auditor audits each one
+- [x] Orchestrator plus crawler and auditor subagents, each with scoped tools
+- [x] Crawler finds up to 20 pages; auditor audits each one
 - [ ] `lookup_wcag` tool: embed the success criteria, retrieve the right one per finding
 - [ ] Judgment checks for alt text, link text, headings, form labels
 

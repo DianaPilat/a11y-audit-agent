@@ -31,6 +31,7 @@ class Severity(str, Enum):
 
 
 class Finding(BaseModel):
+    url: str = Field(min_length=1, description="URL of the audited page the issue was found on")
     rule_id: str = Field(min_length=1, description="axe rule id, e.g. image-alt")
     wcag_criterion: str = Field(
         pattern=r"^\d\.\d\.\d{1,2}$",
@@ -68,14 +69,14 @@ class FindingStore:
         self._db.execute(_SCHEMA)
         self._db.commit()
 
-    def save(self, audit_id: str, url: str, finding: Finding) -> tuple[int, bool]:
+    def save(self, audit_id: str, finding: Finding) -> tuple[int, bool]:
         """Store a finding. Returns (id, created); a repeat of the same rule + element is not duplicated."""
         cur = self._db.execute(
             "INSERT OR IGNORE INTO findings"
             " (audit_id, url, rule_id, wcag_criterion, severity, element, explanation)"
             " VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
-                audit_id, url, finding.rule_id, finding.wcag_criterion,
+                audit_id, finding.url, finding.rule_id, finding.wcag_criterion,
                 finding.severity.value, finding.element, finding.explanation,
             ),
         )
@@ -84,7 +85,7 @@ class FindingStore:
             return cur.lastrowid, True
         row = self._db.execute(
             "SELECT id FROM findings WHERE audit_id=? AND url=? AND rule_id=? AND element=?",
-            (audit_id, url, finding.rule_id, finding.element),
+            (audit_id, finding.url, finding.rule_id, finding.element),
         ).fetchone()
         return row["id"], False
 
@@ -105,7 +106,7 @@ def _reply(payload: dict[str, Any], *, is_error: bool = False) -> dict[str, Any]
     return result
 
 
-def make_save_finding_tool(store: FindingStore, audit_id: str, url: str) -> SdkMcpTool:
+def make_save_finding_tool(store: FindingStore, audit_id: str) -> SdkMcpTool:
     @tool(
         "save_finding",
         "Validate and store one accessibility finding. Call once per distinct issue. "
@@ -118,13 +119,11 @@ def make_save_finding_tool(store: FindingStore, audit_id: str, url: str) -> SdkM
         except ValidationError as e:
             errors = [f"{'.'.join(map(str, err['loc']))}: {err['msg']}" for err in e.errors()]
             return _reply({"saved": False, "errors": errors}, is_error=True)
-        finding_id, created = store.save(audit_id, url, finding)
+        finding_id, created = store.save(audit_id, finding)
         return _reply({"saved": True, "id": finding_id, "duplicate": not created})
 
     return save_finding
 
 
-def build_findings_server(store: FindingStore, audit_id: str, url: str):
-    return create_sdk_mcp_server(
-        SERVER_NAME, tools=[make_save_finding_tool(store, audit_id, url)]
-    )
+def build_findings_server(store: FindingStore, audit_id: str):
+    return create_sdk_mcp_server(SERVER_NAME, tools=[make_save_finding_tool(store, audit_id)])

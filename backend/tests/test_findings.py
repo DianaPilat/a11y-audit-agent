@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from app.findings import Finding, FindingStore, Severity, build_findings_server, make_save_finding_tool
 
 VALID = {
+    "url": "http://x",
     "rule_id": "image-alt",
     "wcag_criterion": "1.1.1",
     "severity": "critical",
@@ -31,6 +32,7 @@ def test_finding_accepts_valid():
         {"element": ""},
         {"explanation": "too short"},
         {"rule_id": ""},
+        {"url": ""},
     ],
 )
 def test_finding_rejects_invalid(override):
@@ -41,8 +43,8 @@ def test_finding_rejects_invalid(override):
 def test_store_saves_and_dedupes():
     store = FindingStore(":memory:")
     finding = Finding(**VALID)
-    first_id, created = store.save("a1", "http://x", finding)
-    again_id, created_again = store.save("a1", "http://x", finding)
+    first_id, created = store.save("a1", finding)
+    again_id, created_again = store.save("a1", finding)
     assert created and not created_again
     assert first_id == again_id
     assert [f["rule_id"] for f in store.list("a1")] == ["image-alt"]
@@ -57,7 +59,7 @@ def test_store_creates_parent_dir(tmp_path):
 
 async def test_save_finding_tool_stores():
     store = FindingStore(":memory:")
-    tool = make_save_finding_tool(store, "a1", "http://x")
+    tool = make_save_finding_tool(store, "a1")
     result = await tool.handler(VALID)
     assert "is_error" not in result
     assert _payload(result) == {"saved": True, "id": 1, "duplicate": False}
@@ -67,7 +69,7 @@ async def test_save_finding_tool_stores():
 
 async def test_save_finding_tool_reports_validation_errors():
     store = FindingStore(":memory:")
-    tool = make_save_finding_tool(store, "a1", "http://x")
+    tool = make_save_finding_tool(store, "a1")
     result = await tool.handler({**VALID, "wcag_criterion": "nope", "severity": "urgent"})
     assert result["is_error"] is True
     errors = _payload(result)["errors"]
@@ -77,12 +79,12 @@ async def test_save_finding_tool_reports_validation_errors():
 
 
 def test_tool_schema_lists_required_fields():
-    tool = make_save_finding_tool(FindingStore(":memory:"), "a1", "http://x")
+    tool = make_save_finding_tool(FindingStore(":memory:"), "a1")
     assert set(tool.input_schema["required"]) == {
-        "rule_id", "wcag_criterion", "severity", "element", "explanation",
+        "url", "rule_id", "wcag_criterion", "severity", "element", "explanation",
     }
 
 
 def test_server_config():
-    server = build_findings_server(FindingStore(":memory:"), "a1", "http://x")
+    server = build_findings_server(FindingStore(":memory:"), "a1")
     assert server["type"] == "sdk" and server["name"] == "findings"
