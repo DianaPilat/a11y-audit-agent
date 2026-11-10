@@ -25,7 +25,7 @@ def payload(result):
 async def test_stdio_lists_tools_with_schemas():
     async with Client(SERVER) as client:
         tools = {t.name: t for t in (await client.list_tools()).tools}
-    assert set(tools) == {"navigate", "list_links", "run_axe", "get_dom_snippet"}
+    assert set(tools) == {"navigate", "list_links", "run_axe", "get_page_content", "get_dom_snippet"}
     assert tools["navigate"].input_schema["required"] == ["url"]
     assert tools["get_dom_snippet"].input_schema["required"] == ["selector"]
     assert all(t.description for t in tools.values())

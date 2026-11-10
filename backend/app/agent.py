@@ -2,7 +2,7 @@
 
 The crawl-then-audit loop is plain Python, so every crawled page is audited. Each
 step is its own agent run with only the tools it needs: the crawler gets navigation
-tools, the auditor gets axe, lookup_wcag and save_finding. All page access goes through the
+tools, the auditor gets axe, get_page_content, lookup_wcag and save_finding. All page access goes through the
 a11y-browser MCP server and all findings through the in-process save_finding tool.
 """
 
@@ -35,7 +35,7 @@ DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 CRAWLER_MODEL = "claude-haiku-4-5-20251001"  # always the smallest model
 DEFAULT_MAX_PAGES = 20
 CRAWLER_MAX_TURNS = 30
-AUDITOR_MAX_TURNS = 40  # about 2 calls (lookup_wcag + save_finding) per distinct rule, plus navigate and axe
+AUDITOR_MAX_TURNS = 40  # about 2 calls (lookup_wcag + save_finding) per distinct rule, plus navigate, axe and page content
 
 SERVER_NAME = "a11y-browser"
 SERVER_CONFIG = {
@@ -54,6 +54,7 @@ CRAWLER_TOOLS = [_browser_tool("navigate"), _browser_tool("list_links")]
 AUDITOR_TOOLS = [
     _browser_tool("navigate"),
     _browser_tool("run_axe"),
+    _browser_tool("get_page_content"),
     _browser_tool("get_dom_snippet"),
     LOOKUP_WCAG_TOOL,
     SAVE_FINDING_TOOL,
@@ -78,21 +79,40 @@ You audit one web page for accessibility (WCAG 2.1 AA / Section 508).
 Steps:
 1. Call navigate with the page URL.
 2. Call run_axe.
-3. Call get_dom_snippet at most 3 times, only with selectors axe reported, and only when
-   you need to see the element to explain the issue.
-4. Call lookup_wcag once per distinct rule, describing the issue in one plain sentence
+3. Call get_page_content once, and make the judgment checks below. axe can only tell
+   that alt text, a link name or a label exists, not whether it is any good.
+4. Call get_dom_snippet at most 3 times, only with selectors axe or get_page_content
+   gave you, and only when you need to see the element to explain the issue.
+5. Call lookup_wcag once per distinct rule, describing the issue in one plain sentence
    (e.g. "form input has no label"). It returns the closest WCAG 2.1 criteria; choose the
    one whose requirement the issue really violates. If axe's wcag_criteria for the rule
    agrees with one of the matches, prefer it. Never use a criterion number that neither
    lookup_wcag nor axe gave you.
-5. Call save_finding once per issue: the page url, rule id, WCAG criterion number
-   (e.g. 1.1.1), severity (axe impact), the affected element's selector, and a
-   plain-language explanation of who it affects and how to fix it. If it returns
-   errors, fix the fields and call it again.
+6. Call save_finding once per issue: the page url, rule id, WCAG criterion number
+   (e.g. 1.1.1), severity (axe impact; for judgment issues use "moderate", or "serious"
+   when the content is unusable), the affected element's selector, and a plain-language
+   explanation of who it affects and how to fix it. If it returns errors, fix the
+   fields and call it again.
 
-Save only issues axe reported. Do not invent issues. Group nodes of the same rule into
-one finding, using the first node's selector. Finish with one line: the page url and how
-many findings you saved. If axe reports no violations, say so and save nothing.
+Judgment checks (rule ids to use; flag only clear problems, never nitpick):
+- judgment-alt-text (1.1.1): alt text that is a file name, "image", "photo", "graphic",
+  or placeholder text; alt that repeats nearby text without adding meaning; a linked or
+  informative image with empty alt. Do not flag empty alt on a plainly decorative image.
+- judgment-link-text (2.4.4): link text that does not say where the link goes on its own,
+  such as "click here", "read more", "learn more", "here", "link", or a bare URL.
+- judgment-heading-structure (1.3.1, or 2.4.6 for unclear text): no h1, more than one h1
+  that is not justified, skipped levels (h2 then h4), headings used only for styling,
+  or heading text that is empty or does not describe its section.
+- judgment-form-label (3.3.2, or 1.3.1 when no programmatic label): a field whose only
+  label is a placeholder or title, or whose label text is vague ("Field 1", "Input").
+
+Skip an issue if axe already reported the same element. Do not invent issues: every
+judgment finding must cite an element from get_page_content.
+
+Save axe issues for axe violations only, grouping nodes of the same rule into one
+finding with the first node's selector. Finish with one line: the page url and how many
+findings you saved. If there are no axe violations and no judgment issues, say so and
+save nothing.
 """
 
 _URL = re.compile(r"""(?:https?|file)://[^\s<>"'`)\]]+""")

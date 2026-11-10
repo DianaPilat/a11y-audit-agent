@@ -15,7 +15,7 @@ from app import browser
 
 mcp = MCPServer(
     "a11y-browser",
-    instructions="Call navigate first; list_links, run_axe and get_dom_snippet act on the current page.",
+    instructions="Call navigate first; list_links, run_axe, get_page_content and get_dom_snippet act on the current page.",
 )
 
 
@@ -99,6 +99,13 @@ async def get_dom_snippet(selector: str) -> str:
     if html is None:
         raise ToolError(f"No element matches {selector!r}")
     return html
+
+
+@mcp.tool(annotations=_annotations(open_world=False))
+async def get_page_content() -> dict:
+    """Compact lists of the current page's images (alt), links (text), headings (level, text) and form fields (labels),
+    each with a selector. Use it for judgment checks axe cannot make: alt quality, link purpose, heading structure, label clarity."""
+    return await browser.get_page_content(session.require_page())
 
 
 if __name__ == "__main__":

@@ -99,6 +99,75 @@ async def get_dom_snippet(page: Page, selector: str, max_chars: int = MAX_SNIPPE
     return html
 
 
+MAX_ITEMS = 40
+MAX_TEXT_CHARS = 120
+
+_CONTENT_JS = r"""
+([maxItems, maxText]) => {
+    const clip = s => (s || '').replace(/\s+/g, ' ').trim().slice(0, maxText);
+    const sel = el => {
+        if (el.id) return '#' + CSS.escape(el.id);
+        const parts = [];
+        for (; el && el.nodeType === 1 && el !== document.body; el = el.parentElement) {
+            const same = [...el.parentElement.children].filter(c => c.tagName === el.tagName);
+            parts.unshift(el.tagName.toLowerCase() + (same.length > 1 ? `:nth-of-type(${same.indexOf(el) + 1})` : ''));
+        }
+        return 'body > ' + parts.join(' > ');
+    };
+    const cap = list => ({ total: list.length, items: list.slice(0, maxItems) });
+    const named = (el, ids) => ids.split(/\s+/).map(i => document.getElementById(i)).filter(Boolean)
+        .map(e => clip(e.textContent)).join(' ');
+    const label = el => {
+        const labels = [...(el.labels || [])].map(l => clip(l.textContent)).filter(Boolean);
+        return {
+            label: labels.join(' | ') || null,
+            aria_label: el.getAttribute('aria-label'),
+            aria_labelledby: el.hasAttribute('aria-labelledby') ? named(el, el.getAttribute('aria-labelledby')) : null,
+            title: el.getAttribute('title'),
+            placeholder: el.getAttribute('placeholder'),
+        };
+    };
+    return {
+        images: cap([...document.querySelectorAll('img, [role=img]')].map(e => ({
+            selector: sel(e),
+            alt: e.hasAttribute('alt') ? e.getAttribute('alt') : null,
+            aria_label: e.getAttribute('aria-label'),
+            src: clip((e.getAttribute('src') || '').split('?')[0].split('/').pop()),
+            in_link: !!e.closest('a'),
+        }))),
+        links: cap([...document.querySelectorAll('a[href]')].map(e => ({
+            selector: sel(e),
+            text: clip(e.textContent),
+            aria_label: e.getAttribute('aria-label'),
+            img_alt: clip([...e.querySelectorAll('img[alt]')].map(i => i.alt).join(' ')),
+            href: clip(e.getAttribute('href')),
+        }))),
+        headings: cap([...document.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')].map(e => ({
+            selector: sel(e),
+            level: e.getAttribute('aria-level') ? +e.getAttribute('aria-level') : (/^H\d$/.test(e.tagName) ? +e.tagName[1] : null),
+            text: clip(e.textContent),
+        }))),
+        form_fields: cap([...document.querySelectorAll(
+            'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea'
+        )].map(e => ({
+            selector: sel(e),
+            type: e.type || e.tagName.toLowerCase(),
+            name: e.getAttribute('name'),
+            ...label(e),
+        }))),
+    };
+}
+"""
+
+
+async def get_page_content(page: Page, max_items: int = MAX_ITEMS) -> dict:
+    """Compact view of what the judgment checks need: images, links, headings and form fields.
+
+    Each section is {total, items}; items are capped at max_items. Text is clipped, never full HTML.
+    """
+    return await page.evaluate(_CONTENT_JS, [max_items, MAX_TEXT_CHARS])
+
+
 def save_results(url: str, results: dict, out_dir: Path = DEFAULT_OUT_DIR) -> Path:
     """Write results as JSON, named after the URL, and return the file path."""
     out_dir.mkdir(parents=True, exist_ok=True)

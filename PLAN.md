@@ -114,7 +114,7 @@ Gate: a 20-page site audited end to end.
 - [x] Orchestrator plus crawler and auditor subagents, each with scoped tools
 - [x] Crawler finds up to 20 pages; auditor audits each one
 - [x] `lookup_wcag` tool: embed the success criteria, retrieve the right one per finding
-- [ ] Judgment checks for alt text, link text, headings, form labels
+- [x] Judgment checks for alt text, link text, headings, form labels
 
 **Week 4 — Tickets and robustness**
 

@@ -38,6 +38,7 @@ def test_auditor_options_are_scoped():
     assert opts.allowed_tools == [
         "mcp__a11y-browser__navigate",
         "mcp__a11y-browser__run_axe",
+        "mcp__a11y-browser__get_page_content",
         "mcp__a11y-browser__get_dom_snippet",
         "mcp__wcag__lookup_wcag",
         "mcp__findings__save_finding",
