@@ -7,6 +7,7 @@ in-process MCP server, bound to one audit run.
 
 import json
 import sqlite3
+from collections.abc import Sequence
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -68,6 +69,22 @@ CREATE TABLE IF NOT EXISTS findings (
 )
 """
 
+_TICKETS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS tickets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    audit_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    fix_description TEXT NOT NULL,
+    code_before TEXT NOT NULL DEFAULT '',
+    code_after TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS ticket_findings (
+    ticket_id INTEGER NOT NULL REFERENCES tickets(id),
+    finding_id INTEGER NOT NULL UNIQUE REFERENCES findings(id)
+);
+"""
+
 
 class FindingStore:
     def __init__(self, path: Path | str = DEFAULT_DB_PATH) -> None:
@@ -76,6 +93,9 @@ class FindingStore:
         self._db = sqlite3.connect(str(path))
         self._db.row_factory = sqlite3.Row
         self._db.execute(_SCHEMA)
+        if any(c["name"] == "finding_id" for c in self._db.execute("PRAGMA table_info(tickets)")):
+            self._db.execute("DROP TABLE tickets")  # one-ticket-per-finding shape from before root-cause grouping
+        self._db.executescript(_TICKETS_SCHEMA)
         self._db.commit()
 
     def save(self, audit_id: str, finding: Finding) -> tuple[int, bool]:
@@ -103,6 +123,52 @@ class FindingStore:
             "SELECT * FROM findings WHERE audit_id=? ORDER BY id", (audit_id,)
         ).fetchall()
         return [dict(r) for r in rows]
+
+    def get(self, audit_id: str, finding_id: int) -> dict[str, Any] | None:
+        row = self._db.execute(
+            "SELECT * FROM findings WHERE audit_id=? AND id=?", (audit_id, finding_id)
+        ).fetchone()
+        return dict(row) if row else None
+
+    def ticketed_finding_ids(self, audit_id: str) -> dict[int, int]:
+        """Map finding id -> id of the ticket that already covers it."""
+        rows = self._db.execute(
+            "SELECT tf.finding_id, tf.ticket_id FROM ticket_findings tf"
+            " JOIN tickets t ON t.id = tf.ticket_id WHERE t.audit_id=?",
+            (audit_id,),
+        ).fetchall()
+        return {r["finding_id"]: r["ticket_id"] for r in rows}
+
+    def save_ticket(self, audit_id: str, ticket: Any) -> int:
+        """Store a ticket (a tickets.Ticket) covering ticket.finding_ids. Callers check the ids first."""
+        cur = self._db.execute(
+            "INSERT INTO tickets (audit_id, title, fix_description, code_before, code_after)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (audit_id, ticket.title, ticket.fix_description, ticket.code_before, ticket.code_after),
+        )
+        self._db.executemany(
+            "INSERT INTO ticket_findings (ticket_id, finding_id) VALUES (?, ?)",
+            [(cur.lastrowid, fid) for fid in ticket.finding_ids],
+        )
+        self._db.commit()
+        return cur.lastrowid
+
+    def list_tickets(self, audit_id: str) -> Sequence[dict[str, Any]]:
+        """Tickets in creation order, each with its findings under "findings"."""
+        tickets = [
+            dict(r) for r in self._db.execute(
+                "SELECT id, title, fix_description, code_before, code_after FROM tickets"
+                " WHERE audit_id=? ORDER BY id", (audit_id,),
+            )
+        ]
+        for t in tickets:
+            t["findings"] = [
+                dict(r) for r in self._db.execute(
+                    "SELECT f.* FROM findings f JOIN ticket_findings tf ON tf.finding_id = f.id"
+                    " WHERE tf.ticket_id=? ORDER BY f.id", (t["id"],),
+                )
+            ]
+        return tickets
 
     def close(self) -> None:
         self._db.close()

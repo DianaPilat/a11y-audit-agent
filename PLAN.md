@@ -118,11 +118,11 @@ Gate: a 20-page site audited end to end.
 
 **Week 4 — Tickets and robustness**
 
-- [ ] Ticket writer subagent with `create_ticket`: suggested code fix per finding; Markdown and JSON export
-- [ ] Ticket writer groups findings by root cause before drafting tickets (for example, one missing `<main>` produces many 'region' nodes but should become one ticket)
+- [x] Ticket writer subagent with `create_ticket`: suggested code fix per finding; Markdown and JSON export
+- [x] Ticket writer groups findings by root cause before drafting tickets (for example, one missing `<main>` produces many 'region' nodes but should become one ticket)
 - [ ] Severity and plain-language explanations
-- [ ] Hooks that log each tool call with tokens and cost, per subagent
-- [ ] Retries and timeouts in the MCP server
+- [x] Hooks that log each tool call with tokens and cost, per subagent
+- [x] Retries and timeouts in the MCP server
 
 ### Phase 3 — Evals and UI (weeks 5–6)
 

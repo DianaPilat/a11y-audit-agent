@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(../.venv/Scripts/python.exe -m pytest -q tests/test_tickets.py tests/test_agent.py tests/test_findings.py)",
+      "Bash(sed -i 's/def list_tickets\\(self, audit_id: str\\) -> list\\\\[dict\\\\[str, Any\\\\]\\\\]:/def list_tickets\\(self, audit_id: str\\) -> Sequence[dict[str, Any]]:/; s/^from enum import Enum/from collections.abc import Sequence\\\\nfrom enum import Enum/' app/findings.py)",
+      "Bash(.venv/Scripts/python -c ' *)"
+    ]
+  }
+}

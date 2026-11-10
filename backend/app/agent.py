@@ -1,4 +1,4 @@
-"""Site audit: a crawler run, then one auditor run per page, using the Claude Agent SDK.
+"""Site audit: a crawler run, one auditor run per page, then one ticket writer run that groups all findings by root cause.
 
 The crawl-then-audit loop is plain Python, so every crawled page is audited. Each
 step is its own agent run with only the tools it needs: the crawler gets navigation
@@ -25,7 +25,9 @@ from claude_agent_sdk import (
     query,
 )
 
+from app.observability import UsageTracker
 from app.findings import SAVE_FINDING_TOOL, SERVER_NAME as FINDINGS_SERVER, FindingStore, build_findings_server
+from app.tickets import CREATE_TICKET_TOOL, SERVER_NAME as TICKETS_SERVER, build_tickets_server, export_json, export_markdown
 from app.wcag import LOOKUP_WCAG_TOOL, SERVER_NAME as WCAG_SERVER, build_wcag_server
 
 log = logging.getLogger("agent")
@@ -36,6 +38,8 @@ CRAWLER_MODEL = "claude-haiku-4-5-20251001"  # always the smallest model
 DEFAULT_MAX_PAGES = 20
 CRAWLER_MAX_TURNS = 30
 AUDITOR_MAX_TURNS = 40  # about 2 calls (lookup_wcag + save_finding) per distinct rule, plus navigate, axe and page content
+
+WRITER_MAX_TURNS = 60  # one create_ticket per root cause, plus navigate and a few snippets
 
 SERVER_NAME = "a11y-browser"
 SERVER_CONFIG = {
@@ -58,6 +62,12 @@ AUDITOR_TOOLS = [
     _browser_tool("get_dom_snippet"),
     LOOKUP_WCAG_TOOL,
     SAVE_FINDING_TOOL,
+]
+
+WRITER_TOOLS = [
+    _browser_tool("navigate"),
+    _browser_tool("get_dom_snippet"),
+    CREATE_TICKET_TOOL,
 ]
 
 CRAWLER_PROMPT = """\
@@ -115,6 +125,31 @@ findings you saved. If there are no axe violations and no judgment issues, say s
 save nothing.
 """
 
+WRITER_PROMPT = """You write remediation tickets for the accessibility findings of one site audit. You are
+given every finding with its id, page, rule, WCAG criterion, element and explanation.
+
+First group the findings by root cause: findings that one code change would fix belong
+to one ticket. Typical groups: the same rule on many pages (a shared header, footer or
+template, e.g. one missing <main> landmark flagged as many "region" nodes), or the same
+rule on many elements of one page (e.g. every icon button lacking a name). Findings
+that need different fixes stay in separate tickets, even if the rule is the same.
+
+Then call create_ticket once per group, listing every finding id in it. Every finding
+must end up in exactly one ticket.
+- title: short and imperative, naming the element or component ("Add alt text to the hero image").
+- fix_description: what to change and why, in plain language a developer can act on.
+  For a shared cause, say where the fix goes once and that it resolves all occurrences.
+- code_after: a concrete, paste-ready fix (HTML, ARIA or CSS). Use the real element
+  details you have; never invent text content you cannot see, use a clear placeholder
+  such as "DESCRIBE THE IMAGE" instead.
+- code_before: the current HTML, only if you have seen it.
+
+To see an element, call navigate with its page URL, then get_dom_snippet with the
+finding's selector. Do this only when the fix depends on the markup, at most 5 snippets
+in total. If create_ticket returns errors, fix the fields and call it again.
+Finish with one line: how many tickets you created for how many findings.
+"""
+
 _URL = re.compile(r"""(?:https?|file)://[^\s<>"'`)\]]+""")
 
 
@@ -129,6 +164,9 @@ class AuditRun:
     cost_usd: float | None = None
     audit_id: str = ""
     findings: list[dict[str, Any]] = field(default_factory=list)
+    tickets: list[dict[str, Any]] = field(default_factory=list)
+    tickets_failed: bool = False
+    usage: UsageTracker = field(default_factory=UsageTracker)
 
 
 def parse_page_urls(text: str, start_url: str, max_pages: int) -> list[str]:
@@ -174,11 +212,41 @@ def auditor_options(store: FindingStore, audit_id: str, model: str = DEFAULT_MOD
     )
 
 
-async def _run(prompt: str, options: ClaudeAgentOptions, run: AuditRun) -> str:
-    """Run one agent to completion; add its tool calls and cost to the run; return its final text."""
+def writer_options(store: FindingStore, audit_id: str, model: str = DEFAULT_MODEL) -> ClaudeAgentOptions:
+    return ClaudeAgentOptions(
+        model=model,
+        system_prompt=WRITER_PROMPT,
+        mcp_servers={
+            SERVER_NAME: SERVER_CONFIG,
+            TICKETS_SERVER: build_tickets_server(store, audit_id),
+        },
+        strict_mcp_config=True,
+        tools=[],
+        allowed_tools=WRITER_TOOLS,
+        permission_mode="dontAsk",
+        setting_sources=[],
+        max_turns=WRITER_MAX_TURNS,
+    )
+
+
+def writer_prompt(findings: list[dict[str, Any]]) -> str:
+    lines = [f"Write tickets for these {len(findings)} findings, grouped by root cause:"]
+    for f in sorted(findings, key=lambda f: (f["rule_id"], f["id"])):
+        lines.append(
+            f"- finding_id {f['id']}: {f['url']} | rule {f['rule_id']} | WCAG {f['wcag_criterion']} | "
+            f"severity {f['severity']} | element {f['element']}\n  {f['explanation']}"
+        )
+    return "\n".join(lines)
+
+
+async def _run(prompt: str, options: ClaudeAgentOptions, run: AuditRun, agent: str, target: str = "") -> str:
+    """Run one agent to completion; add its tool calls, tokens and cost to the run; return its final text."""
     texts: list[str] = []
+    tracking = run.usage.start_agent(agent, target)
+    options.hooks = tracking.hooks()
     async for message in query(prompt=prompt, options=options):
         if isinstance(message, AssistantMessage):
+            tracking.on_assistant(message)
             for block in message.content:
                 if isinstance(block, TextBlock):
                     texts.append(block.text)
@@ -186,6 +254,7 @@ async def _run(prompt: str, options: ClaudeAgentOptions, run: AuditRun) -> str:
                     run.tool_calls.append(block.name)
                     log.info("tool call: %s %s", block.name, block.input)
         elif isinstance(message, ResultMessage):
+            tracking.on_result(message)
             run.cost_usd = (run.cost_usd or 0) + (message.total_cost_usd or 0)
             if message.result:
                 texts = [message.result]
@@ -204,7 +273,7 @@ async def audit_site(
     if max_pages > 1:
         crawl_prompt = f"Find pages to audit.\nStart URL: {url}\nPage limit: {max_pages}"
         try:
-            crawl_reply = await _run(crawl_prompt, crawler_options(), run)
+            crawl_reply = await _run(crawl_prompt, crawler_options(), run, "crawler")
         except Exception:
             log.exception("crawl failed; auditing only the start URL")
             crawl_reply = ""
@@ -216,16 +285,30 @@ async def audit_site(
     for page in run.pages:
         try:
             summaries.append(
-                await _run(f"Audit this page: {page}", auditor_options(store, run.audit_id, model), run)
+                await _run(f"Audit this page: {page}", auditor_options(store, run.audit_id, model), run, "auditor", page)
             )
         except Exception:
             log.exception("audit of %s failed", page)
             run.failed_pages.append(page)
     run.findings = store.list(run.audit_id)
 
-    lines = [f"Audited {len(run.pages) - len(run.failed_pages)} of {len(run.pages)} pages, saved {len(run.findings)} findings."]
+    if run.findings:
+        try:
+            await _run(writer_prompt(run.findings), writer_options(store, run.audit_id, model), run, "ticket_writer")
+        except Exception:
+            log.exception("ticket writing failed")
+            run.tickets_failed = True
+    run.tickets = store.list_tickets(run.audit_id)
+
+    lines = [
+        f"Audited {len(run.pages) - len(run.failed_pages)} of {len(run.pages)} pages, "
+        f"saved {len(run.findings)} findings and {len(run.tickets)} tickets."
+    ]
     if run.failed_pages:
         lines.append("Failed pages: " + ", ".join(run.failed_pages))
+    unticketed = len(run.findings) - sum(len(t["findings"]) for t in run.tickets)
+    if run.tickets_failed or unticketed:
+        lines.append(f"Ticket writing incomplete: {unticketed} findings have no ticket.")
     run.report = "\n\n".join(lines + summaries)
     return run
 
@@ -236,5 +319,9 @@ if __name__ == "__main__":
         sys.exit("usage: python -m app.agent <url> [max_pages]")
     result = asyncio.run(audit_site(sys.argv[1], int(sys.argv[2]) if len(sys.argv) == 3 else DEFAULT_MAX_PAGES))
     print(result.report)
-    print(f"\nsaved {len(result.findings)} findings (audit {result.audit_id})")
+    out = BACKEND / "data"
+    out.mkdir(exist_ok=True)
+    (out / f"tickets-{result.audit_id}.md").write_text(export_markdown(result.tickets), encoding="utf-8")
+    (out / f"tickets-{result.audit_id}.json").write_text(export_json(result.tickets), encoding="utf-8")
+    print(f"\nsaved {len(result.findings)} findings, {len(result.tickets)} tickets (audit {result.audit_id}); exports in {out}")
     print(f"\n--- cost: ${result.cost_usd} | tool calls: {len(result.tool_calls)}")

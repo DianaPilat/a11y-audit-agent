@@ -12,11 +12,22 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from playwright.async_api import Page, async_playwright
+from playwright.async_api import Error as PlaywrightError, TimeoutError as PlaywrightTimeoutError, Page, Response, async_playwright
 
 AXE_PATH = Path(__file__).parent / "vendor" / "axe.min.js"
 DEFAULT_OUT_DIR = Path(__file__).resolve().parent.parent / "data" / "results"
 NAVIGATION_TIMEOUT_MS = 30_000
+NAVIGATE_ATTEMPTS = 3
+RETRY_BACKOFF_S = 1.0  # doubled after each failed attempt
+RETRY_STATUSES = {502, 503, 504}
+# Errors that will not go away on a retry: a wrong host or URL, a bad certificate.
+PERMANENT_ERRORS = (
+    "ERR_NAME_NOT_RESOLVED", "ERR_INVALID_URL", "ERR_UNKNOWN_URL_SCHEME", "ERR_FILE_NOT_FOUND",
+    "ERR_CERT", "ERR_SSL", "ERR_ADDRESS_INVALID", "Cannot navigate to invalid URL",
+)
+# Per-tool time budgets for work on an already loaded page.
+PAGE_TOOL_TIMEOUT_S = 20.0
+AXE_TIMEOUT_S = 60.0
 
 
 @asynccontextmanager
@@ -32,14 +43,60 @@ async def load_page(url: str, timeout_ms: int = NAVIGATION_TIMEOUT_MS) -> AsyncI
             await browser.close()
 
 
+async def _inject_and_run_axe(page: Page) -> dict:
+    await page.add_script_tag(path=str(AXE_PATH))
+    return await page.evaluate("axe.run()")
+
+
+def is_transient(error: PlaywrightError) -> bool:
+    """True for failures worth retrying: timeouts and network errors, but not wrong hosts or bad URLs."""
+    if isinstance(error, PlaywrightTimeoutError):
+        return True
+    message = error.message
+    return "net::ERR_" in message and not any(p in message for p in PERMANENT_ERRORS)
+
+
+async def goto_with_retry(
+    page: Page,
+    url: str,
+    attempts: int = NAVIGATE_ATTEMPTS,
+    backoff_s: float | None = None,
+    timeout_ms: int = NAVIGATION_TIMEOUT_MS,
+) -> Response | None:
+    """page.goto, retried with exponential backoff on transient errors and 502/503/504 responses.
+
+    Permanent errors raise at once. After the last attempt a transient error is raised, and
+    a bad-gateway style response is returned so the caller can report its status.
+    """
+    backoff_s = RETRY_BACKOFF_S if backoff_s is None else backoff_s
+    for attempt in range(1, attempts + 1):
+        last = attempt == attempts
+        try:
+            response = await page.goto(url, wait_until="load", timeout=timeout_ms)
+        except PlaywrightError as e:
+            if last or not is_transient(e):
+                raise
+        else:
+            if last or response is None or response.status not in RETRY_STATUSES:
+                return response
+        await asyncio.sleep(backoff_s * 2 ** (attempt - 1))
+    raise AssertionError("unreachable")  # pragma: no cover
+
+
 async def run_axe(page: Page) -> dict:
     """Run axe-core on the page and return compact results, not the raw axe output.
 
     Keeps violations (failed rules) and incomplete (axe couldn't decide; needs
     judgment). Drops passes and inapplicable, keeping only a count of passes.
     """
-    await page.add_script_tag(path=str(AXE_PATH))
-    raw = await page.evaluate("axe.run()")
+    try:
+        raw = await _inject_and_run_axe(page)
+    except PlaywrightError as e:
+        if "context was destroyed" not in e.message and "navigation" not in e.message:
+            raise
+        # The page navigated under us (a client-side redirect): wait for it to settle, then retry once.
+        await page.wait_for_load_state("load")
+        raw = await _inject_and_run_axe(page)
     return {
         "axe_version": raw["testEngine"]["version"],
         "violations": _compact(raw["violations"]),

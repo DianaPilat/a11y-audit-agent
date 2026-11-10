@@ -46,6 +46,17 @@ def test_auditor_options_are_scoped():
     assert set(opts.mcp_servers) == {"a11y-browser", "findings", "wcag"}
 
 
+def test_writer_options_are_scoped():
+    opts = agent.writer_options(FindingStore(":memory:"), "a1")
+    assert opts.tools == []
+    assert opts.allowed_tools == [
+        "mcp__a11y-browser__navigate",
+        "mcp__a11y-browser__get_dom_snippet",
+        "mcp__tickets__create_ticket",
+    ]
+    assert set(opts.mcp_servers) == {"a11y-browser", "tickets"}
+
+
 def test_parse_page_urls_keeps_start_first_same_origin_deduped_and_capped():
     reply = """\
 Pages found:
@@ -73,6 +84,9 @@ def _fake_query(store, crawl_reply, calls, fail_on=()):
                 content=[ToolUseBlock(id="1", name="mcp__a11y-browser__list_links", input={})], model="m"
             )
             yield _result(result=crawl_reply)
+            return
+        if prompt.startswith("Write tickets"):
+            yield _result(result="tickets written")
             return
         page = prompt.removeprefix("Audit this page: ")
         if page in fail_on:
@@ -106,9 +120,11 @@ async def test_audit_site_audits_every_crawled_page(monkeypatch, fixed_audit_id)
     assert [c for c in calls if c.startswith("Audit")] == [f"Audit this page: {u}" for u in run.pages]
     assert "Start URL: https://x.com/" in calls[0] and "Page limit: 5" in calls[0]
     assert {f["url"] for f in run.findings} == set(run.pages)
-    assert run.cost_usd == pytest.approx(0.04)  # crawler + 3 auditors
+    assert run.cost_usd == pytest.approx(0.05)  # crawler + 3 auditors + 1 ticket writer
+    writer_calls = [c for c in calls if c.startswith("Write tickets")]
+    assert len(writer_calls) == 1 and "3 findings" in writer_calls[0]
     assert run.tool_calls == ["mcp__a11y-browser__list_links"]
-    assert "Audited 3 of 3 pages, saved 3 findings." in run.report
+    assert "Audited 3 of 3 pages, saved 3 findings and 0 tickets." in run.report
 
 
 async def test_audit_site_single_page_skips_crawler(monkeypatch, fixed_audit_id):
@@ -116,7 +132,7 @@ async def test_audit_site_single_page_skips_crawler(monkeypatch, fixed_audit_id)
     calls: list[str] = []
     monkeypatch.setattr(agent, "query", _fake_query(store, "", calls))
     run = await agent.audit_site("http://x", max_pages=1, store=store)
-    assert calls == ["Audit this page: http://x"]
+    assert calls[0] == "Audit this page: http://x"
     assert run.pages == ["http://x"]
 
 
