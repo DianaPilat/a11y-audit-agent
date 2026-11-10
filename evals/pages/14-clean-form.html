@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Clean signup form</title></head>
+<body>
+  <main>
+    <h1>Create an account</h1>
+    <form>
+      <label for="full-name">Full name</label>
+      <input id="full-name" name="full-name" type="text" autocomplete="name">
+      <label for="email">Email address</label>
+      <input id="email" name="email" type="email" autocomplete="email">
+      <fieldset>
+        <legend>Contact preference</legend>
+        <input id="pref-email" name="pref" type="radio" value="email"><label for="pref-email">Email</label>
+        <input id="pref-phone" name="pref" type="radio" value="phone"><label for="pref-phone">Phone</label>
+      </fieldset>
+      <button type="submit">Create account</button>
+    </form>
+  </main>
+</body>
+</html>

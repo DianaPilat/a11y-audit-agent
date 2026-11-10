@@ -1,0 +1,516 @@
+{
+  "model": "claude-haiku-4-5-20251001",
+  "started": "2026-11-10T20:53:09+00:00",
+  "seeded": {
+    "01-missing-alt.html": {
+      "findings": [
+        {
+          "rule_id": "image-alt",
+          "wcag_criterion": "1.1.1",
+          "severity": "critical",
+          "element": "#hero",
+          "explanation": "Three images on the page (#hero, #chart, and #logo-link) are missing alternative text. Images without alt text prevent screen reader users from understanding the image content. The #logo-link image is also inside a link, which compounds the problem by making the link itself inaccessible. All images must have meaningful alt text that describes the image's content and purpose. For decorative images, use alt=\"\" with role=\"presentation\"."
+        },
+        {
+          "rule_id": "link-name",
+          "wcag_criterion": "2.4.4",
+          "severity": "serious",
+          "element": "a",
+          "explanation": "The link at the top of the page (href=\"about.html\") contains only an image with no alt text, so the link has no discernible purpose for screen reader users. Users cannot understand where the link will take them. The link text or the contained image's alt text must clearly describe the link's destination or action. Add meaningful alt text to the image (e.g., \"About Us\") or add visible text to the link."
+        }
+      ],
+      "cost_usd": 0.0328319,
+      "seconds": 34.4,
+      "error": null
+    },
+    "02-low-contrast.html": {
+      "findings": [
+        {
+          "rule_id": "color-contrast",
+          "wcag_criterion": "1.4.3",
+          "severity": "serious",
+          "element": "#grey",
+          "explanation": "Two paragraphs have insufficient color contrast. Light grey text (#aaaaaa) on white has a contrast ratio of 2.32:1, and pale yellow text (#ffe680) on white has a ratio of 1.24:1, both well below the required 4.5:1 for normal text. This affects users with low vision or color blindness who cannot read the text. Fix by darkening the text colors or using a darker background to meet the minimum contrast ratio of 4.5:1."
+        }
+      ],
+      "cost_usd": 0.025902799999999997,
+      "seconds": 19.1,
+      "error": null
+    },
+    "03-unlabeled-form.html": {
+      "findings": [
+        {
+          "rule_id": "label",
+          "wcag_criterion": "3.3.2",
+          "severity": "critical",
+          "element": "#name, #email",
+          "explanation": "Two form input fields (Name and Email) do not have associated labels. Users relying on screen readers cannot understand what information each field requires. Fix this by adding explicit <label> elements associated with each input via the \"for\" attribute, or by adding aria-label attributes with descriptive text describing the purpose of each field."
+        }
+      ],
+      "cost_usd": 0.029731900000000002,
+      "seconds": 23.2,
+      "error": null
+    },
+    "04-missing-lang.html": {
+      "findings": [
+        {
+          "rule_id": "html-has-lang",
+          "wcag_criterion": "3.1.1",
+          "severity": "serious",
+          "element": "html",
+          "explanation": "The HTML element is missing the lang attribute, which is required to programmatically determine the default language of the page. This affects screen reader users and other assistive technologies that need to know the language to provide proper pronunciation and processing. Add a lang attribute to the <html> tag, for example: <html lang=\"en\">"
+        }
+      ],
+      "cost_usd": 0.024373500000000003,
+      "seconds": 17.2,
+      "error": null
+    },
+    "05-missing-title.html": {
+      "findings": [
+        {
+          "rule_id": "document-title",
+          "wcag_criterion": "2.4.2",
+          "severity": "serious",
+          "element": "html",
+          "explanation": "The page is missing a non-empty title element in the document head. This affects all users, particularly those using screen readers and browser tabs, as the title helps them identify and navigate to the page. Without a title, assistive technology users cannot distinguish this page from others. Add a descriptive &lt;title&gt; element in the &lt;head&gt; that describes the page's topic or purpose (e.g., &lt;title&gt;Opening hours&lt;/title&gt;)."
+        }
+      ],
+      "cost_usd": 0.0283982,
+      "seconds": 18.1,
+      "error": null
+    },
+    "06-empty-controls.html": {
+      "findings": [
+        {
+          "rule_id": "button-name",
+          "wcag_criterion": "4.1.2",
+          "severity": "critical",
+          "element": "#close",
+          "explanation": "Buttons #close and #menu have no discernible text or accessible name. Screen reader users cannot determine what these buttons do because they lack visible text, aria-label, aria-labelledby, title attribute, or any other accessible name mechanism. Fix this by adding visible text content, an aria-label attribute with a descriptive name, or a title attribute to each button."
+        },
+        {
+          "rule_id": "link-name",
+          "wcag_criterion": "2.4.4",
+          "severity": "serious",
+          "element": "#empty-link",
+          "explanation": "Link #empty-link has no discernible text or accessible name. Screen reader users cannot determine where this link leads because it lacks visible text, aria-label, aria-labelledby, or title attribute. Fix this by adding visible link text that describes the destination (e.g., \"Go to next page\"), or by providing an aria-label or title attribute with the link purpose."
+        }
+      ],
+      "cost_usd": 0.031731999999999996,
+      "seconds": 22.7,
+      "error": null
+    },
+    "07-heading-structure.html": {
+      "findings": [
+        {
+          "rule_id": "heading-order",
+          "wcag_criterion": "1.3.1",
+          "severity": "moderate",
+          "element": "body > main > h3",
+          "explanation": "The page skips heading levels (h1 \"Annual report\" jumps to h3 \"Highlights\", then to h5 \"Regional detail\"), breaking the semantic document outline. Screen reader users and those navigating by heading rely on a proper sequential hierarchy to understand the document's structure and relationships. Fix by using consecutive heading levels without skipping: change h3 to h2, and h5 to h3 or h4, depending on the actual content hierarchy."
+        }
+      ],
+      "cost_usd": 0.0375568,
+      "seconds": 28.9,
+      "error": null
+    },
+    "08-poor-alt-text.html": {
+      "findings": [
+        {
+          "rule_id": "judgment-alt-text",
+          "wcag_criterion": "1.1.1",
+          "severity": "serious",
+          "element": "#filename",
+          "explanation": "The image has alt text \"IMG_2041.jpg\" which is a file name rather than a meaningful description. This provides no useful information to screen reader users about what the image depicts. The alt text should describe the actual content or purpose of the image, not the file name."
+        },
+        {
+          "rule_id": "judgment-alt-text",
+          "wcag_criterion": "1.1.1",
+          "severity": "serious",
+          "element": "#generic",
+          "explanation": "The image has generic alt text \"image\" which does not describe what the image shows. Screen reader users cannot understand the image's content or purpose. The alt text should be replaced with a meaningful description of what the image depicts."
+        },
+        {
+          "rule_id": "judgment-alt-text",
+          "wcag_criterion": "1.1.1",
+          "severity": "serious",
+          "element": "#photo",
+          "explanation": "The image has generic alt text \"photo\" which does not describe what the image shows. Screen reader users cannot understand the image's content or purpose. The alt text should be replaced with a meaningful description of what the image depicts."
+        }
+      ],
+      "cost_usd": 0.0303656,
+      "seconds": 24.4,
+      "error": null
+    },
+    "09-vague-links.html": {
+      "findings": [
+        {
+          "rule_id": "judgment-link-text",
+          "wcag_criterion": "2.4.4",
+          "severity": "serious",
+          "element": "#more1",
+          "explanation": "The link text \"Read more\" does not describe where the link goes. Screen reader users and those with cognitive disabilities cannot determine the link's purpose from the text alone. Replace with descriptive text such as \"Read more about new office opens\" or \"New office opens announcement\" that indicates the destination."
+        },
+        {
+          "rule_id": "judgment-link-text",
+          "wcag_criterion": "2.4.4",
+          "severity": "serious",
+          "element": "#more2",
+          "explanation": "The link text \"Read more\" does not describe where the link goes. Screen reader users and those with cognitive disabilities cannot determine the link's purpose from the text alone. Replace with descriptive text such as \"Read more about award shortlist\" or \"Award shortlist announcement\" that indicates the destination."
+        },
+        {
+          "rule_id": "judgment-link-text",
+          "wcag_criterion": "2.4.4",
+          "severity": "serious",
+          "element": "#here",
+          "explanation": "The link text \"click here\" does not describe where the link goes. Screen reader users and those with cognitive disabilities cannot determine the link's purpose from the text alone. Replace with descriptive text such as \"View pricing\" or \"View our pricing information\" that clearly indicates the destination."
+        }
+      ],
+      "cost_usd": 0.0361849,
+      "seconds": 26.7,
+      "error": null
+    },
+    "10-unclear-labels.html": {
+      "findings": [
+        {
+          "rule_id": "judgment-form-label",
+          "wcag_criterion": "3.3.2",
+          "severity": "moderate",
+          "element": "#f1",
+          "explanation": "The form field with label \"Field 1\" has a vague label that doesn't describe what information is required. Users, especially those with cognitive disabilities or using assistive technology, won't understand what they need to enter. Replace the label with descriptive text that explains the field's purpose, such as \"First Name\", \"Phone Number\", or \"Date of Birth\"."
+        },
+        {
+          "rule_id": "judgment-form-label",
+          "wcag_criterion": "3.3.2",
+          "severity": "moderate",
+          "element": "#f2",
+          "explanation": "The form field with label \"Info\" has a vague label that doesn't describe what information is required. Users, especially those with cognitive disabilities or using assistive technology, won't understand what they need to enter. Replace the label with descriptive text that explains the field's purpose, such as \"Phone Number\", \"Address\", \"Company Name\", or other specific information being requested."
+        }
+      ],
+      "cost_usd": 0.0330748,
+      "seconds": 23.1,
+      "error": null
+    },
+    "11-aria-and-zoom.html": {
+      "findings": [
+        {
+          "rule_id": "aria-hidden-focus",
+          "wcag_criterion": "4.1.2",
+          "severity": "serious",
+          "element": "#hidden-focus",
+          "explanation": "A div element with aria-hidden=\"true\" contains a focusable link. This means the element is hidden from assistive technology users but remains keyboard accessible, creating a confusing experience. Users relying on screen readers or other assistive technologies will not know the link exists, but keyboard users can still tab to and interact with it. Add tabindex=\"-1\" to the link or remove it from the DOM to prevent it from being focusable."
+        },
+        {
+          "rule_id": "aria-roles",
+          "wcag_criterion": "4.1.2",
+          "severity": "critical",
+          "element": "#bad-role",
+          "explanation": "A div element has role=\"buttn\" which is not a valid ARIA role. Assistive technology users will not receive accurate information about what this element is or how to interact with it. The correct role should be \"button\". Change role=\"buttn\" to role=\"button\" to provide the correct semantic meaning."
+        },
+        {
+          "rule_id": "aria-valid-attr-value",
+          "wcag_criterion": "4.1.2",
+          "severity": "critical",
+          "element": "#bad-attr",
+          "explanation": "A div element with role=\"checkbox\" has aria-checked=\"maybe\", which is not a valid value. ARIA checkbox checked state must be \"true\" or \"false\". Users relying on assistive technology will not understand the actual state of the checkbox. Change aria-checked=\"maybe\" to either aria-checked=\"true\" or aria-checked=\"false\" to provide valid state information."
+        },
+        {
+          "rule_id": "meta-viewport",
+          "wcag_criterion": "1.4.4",
+          "severity": "critical",
+          "element": "meta[name=\"viewport\"]",
+          "explanation": "The meta viewport tag has user-scalable=no, which disables pinch-to-zoom and other user zooming features on mobile devices. Users with low vision or other disabilities rely on zooming to magnify content and make it readable. Remove user-scalable=no from the meta viewport tag to allow users to zoom up to 200% to read content comfortably."
+        }
+      ],
+      "cost_usd": 0.039995499999999996,
+      "seconds": 30.6,
+      "error": null
+    },
+    "12-realistic-shop.html": {
+      "findings": [
+        {
+          "rule_id": "color-contrast",
+          "wcag_criterion": "1.4.3",
+          "severity": "serious",
+          "element": "#tagline",
+          "explanation": "The tagline text \"#b0b0b0\" on a white background has a color contrast ratio of 2.16:1, which is below the minimum required 4.5:1 for normal text at AA level. This affects all users, particularly those with low vision or color blindness. To fix it, choose a darker text color that provides sufficient contrast against the white background, such as dark gray or black."
+        },
+        {
+          "rule_id": "image-alt",
+          "wcag_criterion": "1.1.1",
+          "severity": "critical",
+          "element": "#banner",
+          "explanation": "The banner image has no alt attribute, aria-label, or title. Without alternative text, screen reader users and those with images disabled cannot understand what the image is. Add descriptive alt text that conveys the purpose or content of the banner image, such as \"Garden Supplies store banner\" or a description of what the image depicts."
+        },
+        {
+          "rule_id": "label",
+          "wcag_criterion": "1.3.1",
+          "severity": "critical",
+          "element": "#signup",
+          "explanation": "The email signup input field has no label, aria-label, aria-labelledby, title, or placeholder attribute. Screen reader users cannot understand what this form field is for. Add a visible label element associated with the input using the \"for\" attribute, or provide an aria-label describing the field's purpose, such as \"Email address\"."
+        },
+        {
+          "rule_id": "judgment-link-text",
+          "wcag_criterion": "2.4.4",
+          "severity": "moderate",
+          "element": "#more",
+          "explanation": "The link text \"Click here\" does not describe where the link goes or its purpose. Users, especially those using screen readers, need meaningful link text to understand what they're clicking on. Change the link text to something descriptive like \"View full catalog\" or \"Browse all garden supplies\" to clearly indicate the link's destination."
+        }
+      ],
+      "cost_usd": 0.0326638,
+      "seconds": 23.2,
+      "error": null
+    },
+    "13-clean-article.html": {
+      "findings": [],
+      "cost_usd": 0.024212,
+      "seconds": 18.3,
+      "error": null
+    },
+    "14-clean-form.html": {
+      "findings": [],
+      "cost_usd": 0.0236832,
+      "seconds": 18.7,
+      "error": null
+    },
+    "15-clean-table.html": {
+      "findings": [],
+      "cost_usd": 0.0185221,
+      "seconds": 14.0,
+      "error": null
+    }
+  },
+  "bad": {
+    "https://www.w3.org/WAI/demos/bad/before/home.html": {
+      "findings": [
+        {
+          "rule_id": "color-contrast",
+          "wcag_criterion": "1.4.3",
+          "severity": "serious",
+          "element": "tr[height=\"25px\"]:nth-child(2) > td[bgcolor=\"#A9B8BF\"][width=\"150px\"] > font[color=\"#41545D\"][size=\"2\"] > b",
+          "explanation": "Text elements \"Free Penguins\" and \"More City Parks\" have a color contrast ratio of 3.88:1, below the required 4.5:1 for normal text at AA level. Users with low vision or color blindness cannot read these text elements adequately. Fix by increasing contrast between the text color (#41545d) and background color (#a9b8bf), either by lightening the text or darkening the background."
+        },
+        {
+          "rule_id": "html-has-lang",
+          "wcag_criterion": "3.1.1",
+          "severity": "serious",
+          "element": "html",
+          "explanation": "The &lt;html&gt; element lacks a lang attribute, so screen readers cannot determine the page language and will default to their configured language, potentially misreading content. This affects all users of screen readers. Add a lang attribute to the html element, for example: &lt;html lang=\"en\"&gt;"
+        },
+        {
+          "rule_id": "image-alt",
+          "wcag_criterion": "1.1.1",
+          "severity": "critical",
+          "element": "img[src$=\"border_left_top.gif\"]",
+          "explanation": "Multiple images throughout the page lack alternative text, including decorative borders (border_left_top.gif, border_top.gif, etc.), navigation images (nav_home.gif, nav_news.gif, nav_facts.gif, nav_survey.gif), spacer images (blank_5x5.gif, marker2_w.gif, marker2_t.gif), and content images (teaser_right1.jpg, teaser_right2.jpg, headline_middle.gif). Screen reader users cannot determine the purpose or content of these images. For decorative images, use alt=\"\" or role=\"presentation\". For functional images, provide descriptive alt text that explains the image's purpose or content."
+        },
+        {
+          "rule_id": "link-name",
+          "wcag_criterion": "2.4.4",
+          "severity": "serious",
+          "element": "#home > a[onfocus=\"blur();\"]",
+          "explanation": "Multiple image-based navigation links (Home, News, Tickets, Survey) and \"more\" links contain only unlabeled images, providing no accessible text for screen readers or keyboard users. Users cannot determine where these links lead. Add alt text to the images or add text labels to the links. For example, use &lt;a href=\"...\"&gt;&lt;img alt=\"Home\" src=\"...\"&gt;&lt;/a&gt; or provide both image and text."
+        },
+        {
+          "rule_id": "select-name",
+          "wcag_criterion": "4.1.2",
+          "severity": "critical",
+          "element": "select",
+          "explanation": "The dropdown select element has no associated label, title, or aria-label attribute, making it impossible for screen reader users to understand its purpose. Users cannot determine what choices they are selecting from or what action the selection performs. Add a visible label using &lt;label&gt;, or provide aria-label=\"purpose description\" or title=\"purpose description\" on the select element."
+        },
+        {
+          "rule_id": "judgment-link-text",
+          "wcag_criterion": "2.4.4",
+          "severity": "moderate",
+          "element": "body > div:nth-of-type(2) > table > tbody > tr > td > table > tbody > tr:nth-of-type(2) > td:nth-of-type(2) > table:nth-of-type(2) > tbody > tr > td:nth-of-type(3) > div > p:nth-of-type(2) > span > a:nth-of-type(1)",
+          "explanation": "Multiple links use non-descriptive text like \"Click here\" and \"Read More...\" that do not explain where the link goes or what action it performs. Users relying on screen readers often navigate by link text and cannot understand the purpose without surrounding context. Replace generic link text with descriptive phrases such as \"Read more about upcoming events\" or \"Visit external resource about city information\" to make the link's purpose clear out of context."
+        }
+      ],
+      "cost_usd": 0.11230470000000001,
+      "seconds": 66.6,
+      "error": null
+    },
+    "https://www.w3.org/WAI/demos/bad/before/news.html": {
+      "findings": [
+        {
+          "rule_id": "html-has-lang",
+          "wcag_criterion": "3.1.1",
+          "severity": "serious",
+          "element": "html",
+          "explanation": "The html element is missing the lang attribute, which prevents screen readers and other assistive technologies from determining the page's language. Users with screen readers won't be able to hear content read in the correct language pronunciation. Add a lang attribute to the html tag, e.g., lang=\"en\" for English."
+        },
+        {
+          "rule_id": "image-alt",
+          "wcag_criterion": "1.1.1",
+          "severity": "critical",
+          "element": "img[src$=\"border_left_top.gif\"]",
+          "explanation": "Multiple images throughout the page lack alternative text. This includes decorative border images (border_*.gif), spacing images (marker2_*.gif), layout images (blank_5x5.gif), and content images (headline_middle.gif, nav_*.gif). Blind and low vision users cannot access the content or purpose of these images. Add descriptive alt text to all images: for decorative images use alt=\"\", for content images describe their purpose (e.g., alt=\"Home\" for nav_home.gif)."
+        },
+        {
+          "rule_id": "link-name",
+          "wcag_criterion": "2.4.4",
+          "severity": "serious",
+          "element": "#home > a[onfocus=\"blur();\"]",
+          "explanation": "Four navigation links (Home, News, Tickets/Facts, Survey) contain only images with no alt text and no other text content. Screen reader users cannot determine where these links go. Users navigating by keyboard cannot understand the purpose of links in the tab order. Add alt text to the images (e.g., alt=\"Home\") or add visible text labels to each navigation link."
+        },
+        {
+          "rule_id": "select-name",
+          "wcag_criterion": "4.1.2",
+          "severity": "critical",
+          "element": "select",
+          "explanation": "The dropdown select element has no accessible name. It lacks a label element, aria-label, aria-labelledby, or title attribute. Screen reader users cannot understand what this dropdown control is for. Add a visible label element before the select, or use aria-label to describe the select's purpose (e.g., aria-label=\"Choose a page\")."
+        },
+        {
+          "rule_id": "judgment-alt-text",
+          "wcag_criterion": "1.1.1",
+          "severity": "serious",
+          "element": "img[src$=\"chart1.jpg\"]",
+          "explanation": "The chart image (chart1.jpg) has an explicit empty alt attribute (alt=\"\"). Charts are informative images that communicate data and information to users. An empty alt on an informative image means blind and low-vision users cannot access the chart's content. Replace the empty alt with a descriptive text alternative that describes what the chart shows (e.g., alt=\"Chart showing sales data for Q1-Q4\" or provide a detailed description in adjacent text)."
+        }
+      ],
+      "cost_usd": 0.09859689999999999,
+      "seconds": 51.2,
+      "error": null
+    },
+    "https://www.w3.org/WAI/demos/bad/before/tickets.html": {
+      "findings": [
+        {
+          "rule_id": "html-has-lang",
+          "wcag_criterion": "3.1.1",
+          "severity": "serious",
+          "element": "html",
+          "explanation": "The root html element is missing a lang attribute, which means screen readers and other assistive technologies cannot determine the page's primary language. This affects users with visual impairments who rely on screen readers to interpret content correctly. To fix this, add a lang attribute to the html tag, e.g., <html lang=\"en\"> for English."
+        },
+        {
+          "rule_id": "link-name",
+          "wcag_criterion": "2.4.4",
+          "severity": "serious",
+          "element": "#home > a[onfocus=\"blur();\"]",
+          "explanation": "Navigation links contain only images without alternative text, making them inaccessible to screen reader users who cannot see the images. There are four image-only navigation links (Home, News, Tickets/Facts, Survey). Users with visual impairments have no way to know where these links lead. Add alt text to the images or use aria-label on the links to describe their purpose, such as \"Home\", \"News\", \"Tickets\", and \"Survey\"."
+        },
+        {
+          "rule_id": "select-name",
+          "wcag_criterion": "4.1.2",
+          "severity": "critical",
+          "element": "select",
+          "explanation": "The dropdown select element has no accessible name - it lacks a label, aria-label, title, or aria-labelledby attribute. Screen reader users cannot understand what this dropdown is for. To fix this, either wrap it in a <label> element with descriptive text, add a title attribute, or use aria-label to describe the control's purpose."
+        },
+        {
+          "rule_id": "image-alt",
+          "wcag_criterion": "1.1.1",
+          "severity": "critical",
+          "element": "img[src$=\"border_left_top.gif\"]",
+          "explanation": "Many images throughout the page lack alternative text (alt attributes). This affects users with visual impairments, those using screen readers, and users with images disabled. There are 27 images without alt text, including decorative borders, layout elements, and content images. For decorative images, use empty alt=\"\" with role=\"presentation\". For content images, provide meaningful alt text that describes the image's purpose. Images like \"headline_ticket_prices.gif\" and navigation buttons need descriptive alt text so users understand what they represent."
+        },
+        {
+          "rule_id": "color-contrast",
+          "wcag_criterion": "1.4.3",
+          "severity": "serious",
+          "element": "table[width=\"250px\"] > tbody > tr[bgcolor=\"#A9B8BF\"] > td:nth-child(1) > b > font[color=\"41545D\"]",
+          "explanation": "Text throughout the page has insufficient color contrast ratios (3.88:1 instead of the required 4.5:1). This affects users with low vision or color blindness who struggle to read text that doesn't contrast enough with its background. There are eight instances where bold text in color #41545D appears on background #A9B8BF. To fix this, increase the contrast by either making the text darker (lower hex value) or making the background lighter, or use a different color combination that meets the 4.5:1 minimum contrast requirement."
+        },
+        {
+          "rule_id": "empty-table-header",
+          "wcag_criterion": "1.1.1",
+          "severity": "minor",
+          "element": "th",
+          "explanation": "The table header cell contains only an image without alt text, leaving it empty and meaningless to screen reader users. Users with visual impairments cannot understand what this column represents. To fix this, add descriptive alt text to the image in the header (e.g., \"Ticket Prices\") or add text content to the header cell that describes the column's purpose."
+        }
+      ],
+      "cost_usd": 0.0888177,
+      "seconds": 49.4,
+      "error": null
+    },
+    "https://www.w3.org/WAI/demos/bad/before/survey.html": {
+      "findings": [
+        {
+          "rule_id": "html-has-lang",
+          "wcag_criterion": "3.1.1",
+          "severity": "serious",
+          "element": "html",
+          "explanation": "The html element is missing the lang attribute. This prevents screen readers and other assistive technologies from determining the page's language, making it difficult for users with language-specific accessibility needs to interact with the content. Add a lang attribute to the html element, such as lang=\"en\" for English."
+        },
+        {
+          "rule_id": "image-alt",
+          "wcag_criterion": "1.1.1",
+          "severity": "critical",
+          "element": "img[src$=\"border_left_top.gif\"]",
+          "explanation": "Multiple images throughout the page lack alternative text, including decorative border images, navigation buttons, and functional icons. Screen reader users cannot determine what these images represent or their purpose. For purely decorative images, use empty alt text (alt=\"\") with role=\"presentation\". For functional or informative images, provide descriptive alt text that conveys the image's purpose and content."
+        },
+        {
+          "rule_id": "label",
+          "wcag_criterion": "3.3.2",
+          "severity": "critical",
+          "element": "input[value=\"1\"]",
+          "explanation": "Multiple form fields, including radio buttons, text inputs, and select dropdowns, lack visible or programmatic labels. This includes radio buttons for survey responses (values 1-6), title selection (mr/mrs), email, name, and event fields. Users, particularly those using screen readers, cannot understand what each field is for. Add explicit label elements associated with each form input using the for and id attributes, ensuring the label text clearly describes the field's purpose."
+        },
+        {
+          "rule_id": "link-name",
+          "wcag_criterion": "2.4.4",
+          "severity": "serious",
+          "element": "#home > a[onfocus=\"blur();\"]",
+          "explanation": "Multiple navigation links use only images without accessible text (Home, News, Tickets, Survey navigation buttons). Screen reader users cannot determine where these links go. Add descriptive text inside the links or provide aria-label attributes that describe the destination, such as aria-label=\"Home\" or aria-label=\"News\"."
+        },
+        {
+          "rule_id": "select-name",
+          "wcag_criterion": "3.3.2",
+          "severity": "critical",
+          "element": "select[onchange=\"location.href = this.value;\"]",
+          "explanation": "Two select dropdown elements lack accessible names: one with onchange event navigation and another for country selection (cc). Form users, particularly those using screen readers, cannot understand what these dropdown lists are for. Add explicit label elements linked to the select elements using the for and id attributes, or use aria-label or aria-labelledby to provide a clear description."
+        }
+      ],
+      "cost_usd": 0.0943851,
+      "seconds": 39.7,
+      "error": null
+    },
+    "https://www.w3.org/WAI/demos/bad/before/template.html": {
+      "findings": [
+        {
+          "rule_id": "color-contrast",
+          "wcag_criterion": "1.4.3",
+          "severity": "serious",
+          "element": "tr[height=\"25px\"]:nth-child(2) > td[bgcolor=\"#A9B8BF\"][width=\"150px\"] > font[color=\"#41545D\"][size=\"2\"] > b",
+          "explanation": "Two heading cells in a table have insufficient color contrast (3.88:1 instead of required 4.5:1). The dark gray text (#41545d) on light blue-gray background (#a9b8bf) is difficult for users with low vision to read. Both cells contain \"[TITLE]\" text. Fix by increasing the contrast between foreground and background colors."
+        },
+        {
+          "rule_id": "html-has-lang",
+          "wcag_criterion": "3.1.1",
+          "severity": "serious",
+          "element": "html",
+          "explanation": "The <html> element lacks a lang attribute. Screen reader users cannot automatically determine the page language without it, preventing assistive technologies from applying correct pronunciation and interpretation rules. Add lang=\"en\" (or appropriate language code) to the opening <html> tag."
+        },
+        {
+          "rule_id": "image-alt",
+          "wcag_criterion": "1.1.1",
+          "severity": "critical",
+          "element": "img[src$=\"border_left_top.gif\"]",
+          "explanation": "Multiple images throughout the page lack alternative text. This includes decorative border images (border_left.gif, border_top.gif, blank_5x5.gif, etc.) as well as navigation images (nav_home.gif, nav_news.gif, nav_facts.gif, nav_survey.gif) and other images. Users relying on screen readers cannot understand these images. For decorative images, use empty alt=\"\" and role=\"presentation\"; for informative images like navigation buttons, provide descriptive alt text that explains the image content or purpose."
+        },
+        {
+          "rule_id": "link-name",
+          "wcag_criterion": "2.4.4",
+          "severity": "serious",
+          "element": "#home > a[onfocus=\"blur();\"]",
+          "explanation": "Four navigation links (Home, News, Tickets/Facts, Survey) contain only images without alternative text, making them inaccessible to screen reader users who cannot determine their purpose. These links use image-based buttons with no alt text or title attribute. Add descriptive alt text to the images or provide an aria-label to the links to indicate where they navigate to."
+        },
+        {
+          "rule_id": "select-name",
+          "wcag_criterion": "4.1.2",
+          "severity": "critical",
+          "element": "select",
+          "explanation": "A dropdown select element on the page has no accessible name. It lacks a <label>, title attribute, aria-label, or aria-labelledby. Users of assistive technologies cannot understand the purpose of this dropdown control. Add a visible label with the <label> element and associate it with the select, or provide title/aria-label attributes to describe what the dropdown is for."
+        },
+        {
+          "rule_id": "judgment-link-text",
+          "wcag_criterion": "2.4.4",
+          "severity": "moderate",
+          "element": "body > div:nth-of-type(2) > table > tbody > tr > td > table > tbody > tr:nth-of-type(2) > td:nth-of-type(2) > table:nth-of-type(2) > tbody > tr > td:nth-of-type(5) > table > tbody > tr:nth-of-type(4) > td > table > tbody > tr > td > div > a",
+          "explanation": "Two links on the page use vague link text \"Read more...\" without indicating where they lead. Users, especially those using screen readers, cannot determine the link's purpose from the text alone. The href=\"info\" is also not a valid URL. Replace \"Read more...\" with descriptive link text that clearly indicates the destination or content, such as \"Read more about [topic]\"."
+        }
+      ],
+      "cost_usd": 0.0931685,
+      "seconds": 56.4,
+      "error": null
+    }
+  }
+}

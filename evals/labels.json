@@ -1,0 +1,105 @@
+{
+  "_notes": [
+    "Ground truth for the eval harness. Never edit a label to make a result look better (see PLAN.md, Eval plan).",
+    "type: axe rule id for rule-detectable issues; alt-text-quality, link-text-meaning, heading-structure, label-clarity for judgment issues.",
+    "wcag: every success criterion that is a defensible mapping for the issue; a finding's mapping is correct if it is in this list.",
+    "source: axe = axe-core should flag it (checked by tests/test_eval_labels.py); judgment = only the LLM can flag it.",
+    "selector: CSS selector of the affected element on the page."
+  ],
+  "pages": [
+    {
+      "file": "01-missing-alt.html",
+      "issues": [
+        {"type": "image-alt", "selector": "#hero", "wcag": ["1.1.1"], "source": "axe"},
+        {"type": "image-alt", "selector": "#chart", "wcag": ["1.1.1"], "source": "axe"},
+        {"type": "image-alt", "selector": "#logo-link", "wcag": ["1.1.1"], "source": "axe"},
+        {"type": "link-name", "selector": "a", "wcag": ["2.4.4", "4.1.2"], "source": "axe"}
+      ]
+    },
+    {
+      "file": "02-low-contrast.html",
+      "issues": [
+        {"type": "color-contrast", "selector": "#grey", "wcag": ["1.4.3"], "source": "axe"},
+        {"type": "color-contrast", "selector": "#yellow", "wcag": ["1.4.3"], "source": "axe"}
+      ]
+    },
+    {
+      "file": "03-unlabeled-form.html",
+      "issues": [
+        {"type": "label", "selector": "#name", "wcag": ["1.3.1", "3.3.2", "4.1.2"], "source": "axe"},
+        {"type": "label", "selector": "#email", "wcag": ["1.3.1", "3.3.2", "4.1.2"], "source": "axe"}
+      ]
+    },
+    {
+      "file": "04-missing-lang.html",
+      "issues": [
+        {"type": "html-has-lang", "selector": "html", "wcag": ["3.1.1"], "source": "axe"}
+      ]
+    },
+    {
+      "file": "05-missing-title.html",
+      "issues": [
+        {"type": "document-title", "selector": "html", "wcag": ["2.4.2"], "source": "axe"}
+      ]
+    },
+    {
+      "file": "06-empty-controls.html",
+      "issues": [
+        {"type": "button-name", "selector": "#close", "wcag": ["4.1.2"], "source": "axe"},
+        {"type": "button-name", "selector": "#menu", "wcag": ["4.1.2"], "source": "axe"},
+        {"type": "link-name", "selector": "#empty-link", "wcag": ["2.4.4", "4.1.2"], "source": "axe"}
+      ]
+    },
+    {
+      "file": "07-heading-structure.html",
+      "issues": [
+        {"type": "heading-structure", "selector": "h3", "wcag": ["1.3.1"], "source": "judgment"},
+        {"type": "heading-structure", "selector": "h5", "wcag": ["1.3.1"], "source": "judgment"}
+      ]
+    },
+    {
+      "file": "08-poor-alt-text.html",
+      "issues": [
+        {"type": "alt-text-quality", "selector": "#filename", "wcag": ["1.1.1"], "source": "judgment"},
+        {"type": "alt-text-quality", "selector": "#generic", "wcag": ["1.1.1"], "source": "judgment"},
+        {"type": "alt-text-quality", "selector": "#photo", "wcag": ["1.1.1"], "source": "judgment"}
+      ]
+    },
+    {
+      "file": "09-vague-links.html",
+      "issues": [
+        {"type": "link-text-meaning", "selector": "#more1", "wcag": ["2.4.4"], "source": "judgment"},
+        {"type": "link-text-meaning", "selector": "#more2", "wcag": ["2.4.4"], "source": "judgment"},
+        {"type": "link-text-meaning", "selector": "#here", "wcag": ["2.4.4"], "source": "judgment"}
+      ]
+    },
+    {
+      "file": "10-unclear-labels.html",
+      "issues": [
+        {"type": "label-clarity", "selector": "#f1", "wcag": ["2.4.6", "3.3.2"], "source": "judgment"},
+        {"type": "label-clarity", "selector": "#f2", "wcag": ["2.4.6", "3.3.2"], "source": "judgment"}
+      ]
+    },
+    {
+      "file": "11-aria-and-zoom.html",
+      "issues": [
+        {"type": "aria-roles", "selector": "#bad-role", "wcag": ["4.1.2"], "source": "axe"},
+        {"type": "aria-valid-attr-value", "selector": "#bad-attr", "wcag": ["4.1.2"], "source": "axe"},
+        {"type": "aria-hidden-focus", "selector": "#hidden-focus", "wcag": ["4.1.2"], "source": "axe"},
+        {"type": "meta-viewport", "selector": "meta[name=\"viewport\"]", "wcag": ["1.4.4"], "source": "axe"}
+      ]
+    },
+    {
+      "file": "12-realistic-shop.html",
+      "issues": [
+        {"type": "image-alt", "selector": "#banner", "wcag": ["1.1.1"], "source": "axe"},
+        {"type": "color-contrast", "selector": "#tagline", "wcag": ["1.4.3"], "source": "axe"},
+        {"type": "label", "selector": "#signup", "wcag": ["1.3.1", "3.3.2", "4.1.2"], "source": "axe"},
+        {"type": "link-text-meaning", "selector": "#more", "wcag": ["2.4.4"], "source": "judgment"}
+      ]
+    },
+    {"file": "13-clean-article.html", "issues": []},
+    {"file": "14-clean-form.html", "issues": []},
+    {"file": "15-clean-table.html", "issues": []}
+  ]
+}

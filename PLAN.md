@@ -130,10 +130,10 @@ Gate: metrics reported; evals run on every change.
 
 **Week 5 — Eval set and baseline**
 
-- [ ] 10–15 test pages seeded with known, labeled issues, plus a few clean pages
-- [ ] Labels for the known issues on the W3C Before-After Demonstration (BAD) "before" pages
-- [ ] Eval harness reporting precision, recall, and WCAG mapping accuracy
-- [ ] Record the baseline in `evals/results.md`
+- [x] 10–15 test pages seeded with known, labeled issues, plus a few clean pages
+- [x] Labels for the known issues on the W3C Before-After Demonstration (BAD) "before" pages
+- [x] Eval harness reporting precision, recall, and WCAG mapping accuracy
+- [x] Record the baseline in `evals/results.md`
 
 **Week 6 — Review UI and iteration**
 

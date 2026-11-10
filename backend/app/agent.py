@@ -266,6 +266,7 @@ async def audit_site(
     max_pages: int = DEFAULT_MAX_PAGES,
     model: str = DEFAULT_MODEL,
     store: FindingStore | None = None,
+    write_tickets: bool = True,
 ) -> AuditRun:
     store = store or FindingStore()
     run = AuditRun(url=url, max_pages=max_pages, audit_id=uuid.uuid4().hex)
@@ -292,7 +293,7 @@ async def audit_site(
             run.failed_pages.append(page)
     run.findings = store.list(run.audit_id)
 
-    if run.findings:
+    if run.findings and write_tickets:
         try:
             await _run(writer_prompt(run.findings), writer_options(store, run.audit_id, model), run, "ticket_writer")
         except Exception:
