@@ -28,6 +28,8 @@ def test_finding_accepts_valid():
     [
         {"wcag_criterion": "WCAG 1.1.1"},
         {"wcag_criterion": "1.1"},
+        {"wcag_criterion": "1.1.9"},  # well-formed but not a real criterion
+        {"wcag_criterion": "1.4.6"},  # AAA: out of scope
         {"severity": "urgent"},
         {"element": ""},
         {"explanation": "too short"},

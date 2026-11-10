@@ -12,7 +12,9 @@ from pathlib import Path
 from typing import Any
 
 from claude_agent_sdk import SdkMcpTool, create_sdk_mcp_server, tool
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
+
+from app.wcag import is_known_criterion
 
 BACKEND = Path(__file__).resolve().parent.parent
 DEFAULT_DB_PATH = BACKEND / "data" / "findings.db"
@@ -42,6 +44,13 @@ class Finding(BaseModel):
     explanation: str = Field(
         min_length=20, description="Plain language: who is affected, why it matters, how to fix it"
     )
+
+    @field_validator("wcag_criterion")
+    @classmethod
+    def _known_criterion(cls, value: str) -> str:
+        if not is_known_criterion(value):
+            raise ValueError(f"{value} is not a WCAG 2.1 level A or AA success criterion; use lookup_wcag")
+        return value
 
 
 _SCHEMA = """

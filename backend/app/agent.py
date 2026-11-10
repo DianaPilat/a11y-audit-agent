@@ -2,7 +2,7 @@
 
 The crawl-then-audit loop is plain Python, so every crawled page is audited. Each
 step is its own agent run with only the tools it needs: the crawler gets navigation
-tools, the auditor gets axe and save_finding. All page access goes through the
+tools, the auditor gets axe, lookup_wcag and save_finding. All page access goes through the
 a11y-browser MCP server and all findings through the in-process save_finding tool.
 """
 
@@ -26,6 +26,7 @@ from claude_agent_sdk import (
 )
 
 from app.findings import SAVE_FINDING_TOOL, SERVER_NAME as FINDINGS_SERVER, FindingStore, build_findings_server
+from app.wcag import LOOKUP_WCAG_TOOL, SERVER_NAME as WCAG_SERVER, build_wcag_server
 
 log = logging.getLogger("agent")
 
@@ -34,7 +35,7 @@ DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 CRAWLER_MODEL = "claude-haiku-4-5-20251001"  # always the smallest model
 DEFAULT_MAX_PAGES = 20
 CRAWLER_MAX_TURNS = 30
-AUDITOR_MAX_TURNS = 15
+AUDITOR_MAX_TURNS = 40  # about 2 calls (lookup_wcag + save_finding) per distinct rule, plus navigate and axe
 
 SERVER_NAME = "a11y-browser"
 SERVER_CONFIG = {
@@ -54,6 +55,7 @@ AUDITOR_TOOLS = [
     _browser_tool("navigate"),
     _browser_tool("run_axe"),
     _browser_tool("get_dom_snippet"),
+    LOOKUP_WCAG_TOOL,
     SAVE_FINDING_TOOL,
 ]
 
@@ -78,7 +80,12 @@ Steps:
 2. Call run_axe.
 3. Call get_dom_snippet at most 3 times, only with selectors axe reported, and only when
    you need to see the element to explain the issue.
-4. Call save_finding once per issue: the page url, rule id, WCAG criterion number
+4. Call lookup_wcag once per distinct rule, describing the issue in one plain sentence
+   (e.g. "form input has no label"). It returns the closest WCAG 2.1 criteria; choose the
+   one whose requirement the issue really violates. If axe's wcag_criteria for the rule
+   agrees with one of the matches, prefer it. Never use a criterion number that neither
+   lookup_wcag nor axe gave you.
+5. Call save_finding once per issue: the page url, rule id, WCAG criterion number
    (e.g. 1.1.1), severity (axe impact), the affected element's selector, and a
    plain-language explanation of who it affects and how to fix it. If it returns
    errors, fix the fields and call it again.
@@ -136,6 +143,7 @@ def auditor_options(store: FindingStore, audit_id: str, model: str = DEFAULT_MOD
         mcp_servers={
             SERVER_NAME: SERVER_CONFIG,
             FINDINGS_SERVER: build_findings_server(store, audit_id),
+            WCAG_SERVER: build_wcag_server(),
         },
         strict_mcp_config=True,
         tools=[],

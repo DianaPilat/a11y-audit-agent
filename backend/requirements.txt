@@ -6,3 +6,5 @@ playwright
 pytest-asyncio
 mcp
 claude-agent-sdk
+sentence-transformers
+numpy

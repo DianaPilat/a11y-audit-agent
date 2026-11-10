@@ -45,4 +45,11 @@ The last argument is the page limit (default 20). The run prints the report, the
 
 Or open `backend/data/findings.db` with the VS Code "SQLite Viewer" extension to browse the `findings` table.
 
+### WCAG lookup
+
+The auditor maps each issue to a WCAG 2.1 A/AA success criterion with the `lookup_wcag` tool (`app/wcag.py`). It embeds the 50 criteria locally with sentence-transformers (`all-MiniLM-L6-v2`, downloaded on first use, no API cost) and returns the closest few for a one-sentence issue description. `save_finding` rejects any criterion number that isn't one of the 50.
+
+- `app/data/wcag21.json` is generated from the W3C quickref data: `python scripts/build_wcag_data.py`.
+- `app/data/wcag21_failures.json` is hand-written: typical failures per criterion, embedded with the official wording so plain issue descriptions match.
+
 Run the tests with `pytest`. The live agent test is skipped unless `RUN_LIVE=1` is set.

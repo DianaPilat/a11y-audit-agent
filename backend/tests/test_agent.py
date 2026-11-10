@@ -39,9 +39,10 @@ def test_auditor_options_are_scoped():
         "mcp__a11y-browser__navigate",
         "mcp__a11y-browser__run_axe",
         "mcp__a11y-browser__get_dom_snippet",
+        "mcp__wcag__lookup_wcag",
         "mcp__findings__save_finding",
     ]
-    assert set(opts.mcp_servers) == {"a11y-browser", "findings"}
+    assert set(opts.mcp_servers) == {"a11y-browser", "findings", "wcag"}
 
 
 def test_parse_page_urls_keeps_start_first_same_origin_deduped_and_capped():
@@ -151,5 +152,6 @@ async def test_audit_site_continues_after_a_failed_page(monkeypatch, fixed_audit
 async def test_live_audit_bad_page():
     run = await agent.audit_site((FIXTURES / "bad.html").as_uri(), max_pages=1)
     assert "mcp__a11y-browser__run_axe" in run.tool_calls
+    assert "mcp__wcag__lookup_wcag" in run.tool_calls
     assert "mcp__findings__save_finding" in run.tool_calls
     assert {f["rule_id"] for f in run.findings} >= {"image-alt", "label", "color-contrast"}
