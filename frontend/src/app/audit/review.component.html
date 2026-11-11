@@ -1,0 +1,82 @@
+<p><a routerLink="/">&larr; New audit</a></p>
+
+@if (loadError()) {
+  <p class="error" role="alert">{{ loadError() }}</p>
+}
+
+@if (audit(); as a) {
+  <h1>Findings for {{ a.url }}</h1>
+
+  <section class="card" aria-labelledby="progress-h">
+    <h2 id="progress-h">Audit progress</h2>
+    <p>
+      <strong>{{ phaseLabel() }}</strong>
+      @if (a.status === 'running' && a.phase === 'auditing') {
+        – {{ a.pages_done }} of {{ a.pages_total }} pages done
+      }
+      @if (a.status === 'done') {
+        – {{ a.pages_total - a.pages_failed }} of {{ a.pages_total }} pages audited
+      }
+    </p>
+    @if (a.status !== 'failed') {
+      <progress [value]="progressPercent()" max="100" aria-labelledby="progress-h"></progress>
+    }
+    @if (a.pages_failed) {
+      <p class="warn">{{ a.pages_failed }} page(s) could not be audited.</p>
+    }
+    @if (a.status === 'failed') {
+      <p class="error" role="alert">The audit failed: {{ a.error || 'unknown error' }}</p>
+    }
+  </section>
+
+  <section aria-labelledby="findings-h">
+    <h2 id="findings-h">Findings ({{ counts().all }})</h2>
+
+    @if (counts().all) {
+      <div role="group" aria-label="Filter findings by review status" class="filters">
+        @for (f of filters; track f.value) {
+          <button type="button" class="chip" [attr.aria-pressed]="filter() === f.value" (click)="filter.set(f.value)">
+            {{ f.label }} ({{ counts()[f.value] }})
+          </button>
+        }
+      </div>
+    }
+
+    @if (actionError()) {
+      <p class="error" role="alert">{{ actionError() }}</p>
+    }
+
+    @if (!counts().all) {
+      <p>{{ running() ? 'No findings yet. They appear here as pages are audited.' : 'No accessibility issues were found.' }}</p>
+    } @else if (!visible().length) {
+      <p>No findings match this filter.</p>
+    } @else {
+      <ul class="plain list">
+        @for (f of visible(); track f.id) {
+          <li class="card finding" [attr.data-status]="f.review_status">
+            <div class="row">
+              <h3>{{ f.rule_id }}</h3>
+              <span class="badge sev-{{ f.severity }}">{{ f.severity }}</span>
+            </div>
+            <p class="meta">WCAG {{ f.wcag_criterion }} · {{ f.url }}</p>
+            <p><code>{{ f.element }}</code></p>
+            <p>{{ f.explanation }}</p>
+            <div class="row actions">
+              <span class="status" [attr.data-status]="f.review_status">{{ statusLabel(f.review_status) }}</span>
+              <span class="buttons">
+                <button type="button" class="approve" [attr.aria-pressed]="f.review_status === 'approved'"
+                        [attr.aria-label]="'Approve finding ' + f.rule_id + ' on ' + f.element"
+                        (click)="set(f, f.review_status === 'approved' ? 'pending' : 'approved')">Approve</button>
+                <button type="button" class="reject" [attr.aria-pressed]="f.review_status === 'rejected'"
+                        [attr.aria-label]="'Reject finding ' + f.rule_id + ' on ' + f.element"
+                        (click)="set(f, f.review_status === 'rejected' ? 'pending' : 'rejected')">Reject</button>
+              </span>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}
+
+<div class="visually-hidden" role="status" aria-live="polite">{{ announcement() }}</div>

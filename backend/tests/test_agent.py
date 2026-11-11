@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
-from claude_agent_sdk import AssistantMessage, ResultMessage, ToolUseBlock
+from claude_agent_sdk import AssistantMessage, ResultMessage, ToolResultBlock, ToolUseBlock, UserMessage
 
 from app import agent
 from app.findings import Finding, FindingStore
@@ -57,6 +57,12 @@ def test_writer_options_are_scoped():
     assert set(opts.mcp_servers) == {"a11y-browser", "tickets"}
 
 
+def test_parse_page_urls_drops_urls_list_links_never_returned():
+    reply = "https://x.com/\nhttps://x.com/about\nhttps://x.com/real"
+    seen = {"https://x.com/", "https://x.com/real"}
+    assert agent.parse_page_urls(reply, "https://x.com/", 10, seen) == ["https://x.com/", "https://x.com/real"]
+
+
 def test_parse_page_urls_keeps_start_first_same_origin_deduped_and_capped():
     reply = """\
 Pages found:
@@ -82,6 +88,10 @@ def _fake_query(store, crawl_reply, calls, fail_on=()):
         if prompt.startswith("Find pages"):
             yield AssistantMessage(
                 content=[ToolUseBlock(id="1", name="mcp__a11y-browser__list_links", input={})], model="m"
+            )
+            # list_links returned every URL the crawler goes on to report
+            yield UserMessage(
+                content=[ToolResultBlock(tool_use_id="1", content=[{"type": "text", "text": crawl_reply}])]
             )
             yield _result(result=crawl_reply)
             return

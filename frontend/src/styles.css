@@ -1,0 +1,110 @@
+:root {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --text: #1c1c1a;
+  --muted: #55554f;
+  --border: #d4d4cc;
+  --accent: #1d4ed8;
+  --accent-text: #ffffff;
+  --ok: #166534;
+  --bad: #991b1b;
+  --warn: #854d0e;
+  --focus: #1d4ed8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131312;
+    --surface: #1c1c1a;
+    --text: #ecece8;
+    --muted: #b0b0a8;
+    --border: #3a3a36;
+    --accent: #7aa2ff;
+    --accent-text: #0b1020;
+    --ok: #6ee7a0;
+    --bad: #fca5a5;
+    --warn: #fcd34d;
+    --focus: #7aa2ff;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+header { border-bottom: 1px solid var(--border); background: var(--surface); }
+.brand { display: block; max-width: 56rem; margin: 0 auto; padding: 1rem; font-weight: 600; color: var(--text); text-decoration: none; }
+
+main { max-width: 56rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+main:focus { outline: none; }
+
+h1 { font-size: 1.6rem; line-height: 1.25; margin: 0.5rem 0 1rem; overflow-wrap: anywhere; }
+h2 { font-size: 1.2rem; margin: 2rem 0 0.75rem; }
+h3 { font-size: 1.05rem; margin: 0; }
+.lede { color: var(--muted); max-width: 40rem; }
+
+a { color: var(--accent); }
+a:hover { text-decoration-thickness: 2px; }
+
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.skip-link { position: absolute; left: 0.5rem; top: -4rem; background: var(--surface); padding: 0.5rem 1rem; z-index: 10; border: 2px solid var(--focus); }
+.skip-link:focus { top: 0.5rem; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; margin: 0 0 1rem; }
+.card > :first-child { margin-top: 0; }
+.card > :last-child { margin-bottom: 0; }
+
+ul.plain { list-style: none; margin: 0; padding: 0; }
+
+.row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.meta { color: var(--muted); font-size: 0.9rem; overflow-wrap: anywhere; }
+
+.field { margin: 0 0 1rem; }
+.field.narrow input { max-width: 8rem; }
+label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+input { width: 100%; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--muted); border-radius: 6px; padding: 0.55rem 0.7rem; }
+
+button { font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid var(--muted); background: var(--surface); color: var(--text); padding: 0.45rem 0.9rem; min-height: 2.5rem; }
+button:hover:not(:disabled) { border-color: var(--text); }
+button:disabled { opacity: 0.6; cursor: default; }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+
+.chip[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+
+.approve[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: var(--bg); font-weight: 600; }
+.reject[aria-pressed="true"] { background: var(--bad); border-color: var(--bad); color: var(--bg); font-weight: 600; }
+.buttons { display: flex; gap: 0.5rem; }
+
+.badge { display: inline-block; border: 1px solid var(--muted); border-radius: 999px; padding: 0 0.6rem; font-size: 0.85rem; text-transform: capitalize; white-space: nowrap; }
+.sev-critical, .sev-serious { font-weight: 700; border-width: 2px; }
+
+.status { font-weight: 600; }
+.status[data-status="approved"] { color: var(--ok); }
+.status[data-status="rejected"] { color: var(--bad); }
+.status[data-status="approved"]::before { content: "✓ "; }
+.status[data-status="rejected"]::before { content: "✕ "; }
+
+.finding { border-left-width: 5px; }
+.finding[data-status="approved"] { border-left-color: var(--ok); }
+.finding[data-status="rejected"] { border-left-color: var(--bad); }
+.finding code { overflow-wrap: anywhere; }
+.finding p { margin: 0.5rem 0; }
+.actions { margin-top: 0.75rem; }
+
+.error { color: var(--bad); font-weight: 600; }
+.warn { color: var(--warn); font-weight: 600; }
+
+progress { width: 100%; height: 1rem; accent-color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

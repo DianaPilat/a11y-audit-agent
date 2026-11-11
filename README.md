@@ -14,6 +14,18 @@ uvicorn app.main:app --reload
 
 Then open http://127.0.0.1:8000/health.
 
+## Run the review UI
+
+The Angular app starts audits, shows progress, and lets you approve or reject each finding. It needs the backend running on port 8000 (the dev server proxies `/api` to it) and Node 22.12 or newer.
+
+```
+cd frontend
+npm install
+npm start
+```
+
+Then open http://localhost:4200. `npm test` runs the component tests (set `CHROME_BIN` if Chrome isn't found).
+
 ## Audit a page
 
 One-time browser install, then run an audit; results are saved as JSON under `backend/data/results/`.

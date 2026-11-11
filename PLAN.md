@@ -137,7 +137,7 @@ Gate: metrics reported; evals run on every change.
 
 **Week 6 — Review UI and iteration**
 
-- [ ] Angular review screen: audit progress, findings list, approve or reject
+- [x] Angular review screen: audit progress, findings list, approve or reject
 - [ ] Improve prompts against the evals; log each change and its effect in `evals/results.md`
 - [ ] Compare a single-agent run with the subagent design on cost and accuracy; record the result
 

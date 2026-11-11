@@ -86,6 +86,25 @@ CREATE TABLE IF NOT EXISTS ticket_findings (
 """
 
 
+_AUDITS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS audits (
+    id TEXT PRIMARY KEY,
+    url TEXT NOT NULL,
+    max_pages INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued',
+    phase TEXT NOT NULL DEFAULT 'queued',
+    pages_total INTEGER NOT NULL DEFAULT 0,
+    pages_done INTEGER NOT NULL DEFAULT 0,
+    pages_failed INTEGER NOT NULL DEFAULT 0,
+    error TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+)
+"""
+
+REVIEW_STATUSES = ("pending", "approved", "rejected")
+_AUDIT_FIELDS = {"status", "phase", "pages_total", "pages_done", "pages_failed", "error"}
+
+
 class FindingStore:
     def __init__(self, path: Path | str = DEFAULT_DB_PATH) -> None:
         if str(path) != ":memory:":
@@ -93,6 +112,9 @@ class FindingStore:
         self._db = sqlite3.connect(str(path))
         self._db.row_factory = sqlite3.Row
         self._db.execute(_SCHEMA)
+        if not any(c["name"] == "review_status" for c in self._db.execute("PRAGMA table_info(findings)")):
+            self._db.execute("ALTER TABLE findings ADD COLUMN review_status TEXT NOT NULL DEFAULT 'pending'")
+        self._db.execute(_AUDITS_SCHEMA)
         if any(c["name"] == "finding_id" for c in self._db.execute("PRAGMA table_info(tickets)")):
             self._db.execute("DROP TABLE tickets")  # one-ticket-per-finding shape from before root-cause grouping
         self._db.executescript(_TICKETS_SCHEMA)
@@ -129,6 +151,36 @@ class FindingStore:
             "SELECT * FROM findings WHERE audit_id=? AND id=?", (audit_id, finding_id)
         ).fetchone()
         return dict(row) if row else None
+
+    def set_review_status(self, audit_id: str, finding_id: int, status: str) -> dict[str, Any] | None:
+        """Approve, reject, or reset (pending) a finding. Returns the updated finding, or None if not found."""
+        if status not in REVIEW_STATUSES:
+            raise ValueError(f"status must be one of {REVIEW_STATUSES}")
+        self._db.execute(
+            "UPDATE findings SET review_status=? WHERE audit_id=? AND id=?", (status, audit_id, finding_id)
+        )
+        self._db.commit()
+        return self.get(audit_id, finding_id)
+
+    def create_audit(self, audit_id: str, url: str, max_pages: int) -> None:
+        self._db.execute("INSERT INTO audits (id, url, max_pages) VALUES (?, ?, ?)", (audit_id, url, max_pages))
+        self._db.commit()
+
+    def update_audit(self, audit_id: str, **fields: Any) -> None:
+        if bad := set(fields) - _AUDIT_FIELDS:
+            raise ValueError(f"unknown audit fields: {sorted(bad)}")
+        if not fields:
+            return
+        assignments = ", ".join(f"{k}=?" for k in fields)
+        self._db.execute(f"UPDATE audits SET {assignments} WHERE id=?", (*fields.values(), audit_id))
+        self._db.commit()
+
+    def get_audit(self, audit_id: str) -> dict[str, Any] | None:
+        row = self._db.execute("SELECT * FROM audits WHERE id=?", (audit_id,)).fetchone()
+        return dict(row) if row else None
+
+    def list_audits(self) -> Sequence[dict[str, Any]]:
+        return [dict(r) for r in self._db.execute("SELECT * FROM audits ORDER BY created_at DESC, rowid DESC")]
 
     def ticketed_finding_ids(self, audit_id: str) -> dict[int, int]:
         """Map finding id -> id of the ticket that already covers it."""

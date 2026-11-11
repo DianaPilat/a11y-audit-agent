@@ -21,7 +21,9 @@ from claude_agent_sdk import (
     ClaudeAgentOptions,
     ResultMessage,
     TextBlock,
+    ToolResultBlock,
     ToolUseBlock,
+    UserMessage,
     query,
 )
 
@@ -169,13 +171,16 @@ class AuditRun:
     usage: UsageTracker = field(default_factory=UsageTracker)
 
 
-def parse_page_urls(text: str, start_url: str, max_pages: int) -> list[str]:
-    """Pull page URLs out of the crawler's reply: start URL first, same origin, deduped, capped."""
+def parse_page_urls(text: str, start_url: str, max_pages: int, seen: set[str] | None = None) -> list[str]:
+    """Pull page URLs out of the crawler's reply: start URL first, same origin, deduped, capped.
+
+    If `seen` is given, only URLs the browser actually returned from list_links are kept, so a
+    URL the model invented (e.g. /about on a one-page site) is never audited."""
     origin = urlparse(start_url)[:2]
     urls = [start_url]
     for match in _URL.findall(text):
         url = urldefrag(match.rstrip(".,;:"))[0]
-        if urlparse(url)[:2] == origin and url not in urls:
+        if urlparse(url)[:2] == origin and url not in urls and (seen is None or url in seen):
             urls.append(url)
     return urls[:max_pages]
 
@@ -239,7 +244,15 @@ def writer_prompt(findings: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-async def _run(prompt: str, options: ClaudeAgentOptions, run: AuditRun, agent: str, target: str = "") -> str:
+def _tool_result_text(block: ToolResultBlock) -> str:
+    if isinstance(block.content, str):
+        return block.content
+    return "\n".join(part.get("text", "") for part in block.content or [] if isinstance(part, dict))
+
+
+async def _run(
+    prompt: str, options: ClaudeAgentOptions, run: AuditRun, agent: str, target: str = "", seen_urls: set[str] | None = None
+) -> str:
     """Run one agent to completion; add its tool calls, tokens and cost to the run; return its final text."""
     texts: list[str] = []
     tracking = run.usage.start_agent(agent, target)
@@ -253,6 +266,10 @@ async def _run(prompt: str, options: ClaudeAgentOptions, run: AuditRun, agent: s
                 elif isinstance(block, ToolUseBlock):
                     run.tool_calls.append(block.name)
                     log.info("tool call: %s %s", block.name, block.input)
+        elif isinstance(message, UserMessage) and seen_urls is not None and isinstance(message.content, list):
+            for block in message.content:
+                if isinstance(block, ToolResultBlock):
+                    seen_urls.update(urldefrag(u)[0] for u in _URL.findall(_tool_result_text(block)))
         elif isinstance(message, ResultMessage):
             tracking.on_result(message)
             run.cost_usd = (run.cost_usd or 0) + (message.total_cost_usd or 0)
@@ -267,20 +284,30 @@ async def audit_site(
     model: str = DEFAULT_MODEL,
     store: FindingStore | None = None,
     write_tickets: bool = True,
+    audit_id: str | None = None,
 ) -> AuditRun:
+    """Crawl, audit each page, write tickets. If the store has an audits row for `audit_id`, progress is recorded on it."""
     store = store or FindingStore()
-    run = AuditRun(url=url, max_pages=max_pages, audit_id=uuid.uuid4().hex)
+    run = AuditRun(url=url, max_pages=max_pages, audit_id=audit_id or uuid.uuid4().hex)
 
+    def progress(**fields: Any) -> None:
+        if audit_id:
+            store.update_audit(audit_id, **fields)
+
+    progress(status="running", phase="crawling")
+
+    seen_urls: set[str] = set()
     if max_pages > 1:
         crawl_prompt = f"Find pages to audit.\nStart URL: {url}\nPage limit: {max_pages}"
         try:
-            crawl_reply = await _run(crawl_prompt, crawler_options(), run, "crawler")
+            crawl_reply = await _run(crawl_prompt, crawler_options(), run, "crawler", seen_urls=seen_urls)
         except Exception:
             log.exception("crawl failed; auditing only the start URL")
             crawl_reply = ""
     else:
         crawl_reply = ""
-    run.pages = parse_page_urls(crawl_reply, url, max_pages)
+    run.pages = parse_page_urls(crawl_reply, url, max_pages, seen_urls)
+    progress(phase="auditing", pages_total=len(run.pages))
 
     summaries: list[str] = []
     for page in run.pages:
@@ -291,15 +318,18 @@ async def audit_site(
         except Exception:
             log.exception("audit of %s failed", page)
             run.failed_pages.append(page)
+        progress(pages_done=len(summaries) + len(run.failed_pages), pages_failed=len(run.failed_pages))
     run.findings = store.list(run.audit_id)
 
     if run.findings and write_tickets:
+        progress(phase="writing_tickets")
         try:
             await _run(writer_prompt(run.findings), writer_options(store, run.audit_id, model), run, "ticket_writer")
         except Exception:
             log.exception("ticket writing failed")
             run.tickets_failed = True
     run.tickets = store.list_tickets(run.audit_id)
+    progress(status="done", phase="done")
 
     lines = [
         f"Audited {len(run.pages) - len(run.failed_pages)} of {len(run.pages)} pages, "
