@@ -8,3 +8,6 @@ mcp
 claude-agent-sdk
 sentence-transformers
 numpy
+weasyprint
+jinja2
+pypdf

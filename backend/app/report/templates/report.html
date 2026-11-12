@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Accessibility Assessment Report: {{ r.site }}</title>
+<meta name="description" content="Accessibility assessment of {{ r.site }} against {{ r.standard }}, {{ r.audit_date }}">
+<meta name="author" content="Accessibility Audit Agent">
+<meta name="dcterms.created" content="{{ r.generated_on }}T00:00:00Z">
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 22mm;
+    @bottom-center { content: "Accessibility assessment, " counter(page) " of " counter(pages); font-size: 9pt; color: #404040; }
+  }
+  html { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1a1a1a; background: #fff; }
+  h1 { font-size: 22pt; margin: 0 0 4mm; color: #0b2e59; }
+  h2 { font-size: 15pt; margin: 9mm 0 3mm; color: #0b2e59; border-bottom: 1.5pt solid #0b2e59; padding-bottom: 1mm; break-after: avoid; }
+  h3 { font-size: 12pt; margin: 7mm 0 2mm; color: #1a1a1a; break-after: avoid; }
+  h4 { font-size: 10.5pt; margin: 3mm 0 1mm; break-after: avoid; }
+  p { margin: 0 0 3mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9pt; }
+  caption { text-align: left; font-weight: bold; padding-bottom: 1mm; }
+  th, td { border: 0.75pt solid #595959; padding: 1.5mm 2mm; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+  th { background: #e6ecf5; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  dl.meta { display: grid; grid-template-columns: 38mm 1fr; gap: 1mm 4mm; margin: 0 0 4mm; }
+  dl.meta dt { font-weight: bold; }
+  dl.meta dd { margin: 0; overflow-wrap: anywhere; }
+  .notice { border: 1.5pt solid #7a0000; padding: 2.5mm 3mm; margin: 0 0 5mm; font-weight: bold; color: #7a0000; }
+  .label { font-weight: bold; }
+  .unreviewed { color: #7a0000; font-weight: bold; }
+  ul.urls { margin: 0 0 3mm; padding-left: 5mm; font-size: 8.5pt; columns: 1; overflow-wrap: anywhere; }
+  pre { background: #f3f3f3; border: 0.75pt solid #8a8a8a; padding: 2mm; font-family: "DejaVu Sans Mono", monospace; font-size: 8pt;
+        white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 3mm; break-inside: avoid; }
+  section.issue { break-inside: auto; }
+  .limits { border: 1pt solid #595959; padding: 3mm; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Accessibility Assessment Report</h1>
+  <p><strong>{{ r.site }}</strong></p>
+</header>
+<main>
+{% if r.include_unreviewed %}<p class="notice">{{ unreviewed_notice }}</p>{% endif %}
+
+<section>
+<h2>Executive summary</h2>
+<dl class="meta">
+  <dt>Site assessed</dt><dd>{{ r.site }}</dd>
+  <dt>Standard</dt><dd>{{ r.standard }}</dd>
+  <dt>Assessment date</dt><dd>{{ r.audit_date }}</dd>
+  <dt>Report generated</dt><dd>{{ r.generated_on }}</dd>
+  <dt>Pages audited</dt><dd>{{ r.pages|length }}</dd>
+  <dt>Findings included</dt><dd>{{ r.counts.included }} findings in {{ r.issues|length }} distinct issues{% if r.counts.unreviewed_included %} ({{ r.counts.unreviewed_included }} unreviewed){% endif %}</dd>
+</dl>
+<p>This assessment tested the pages listed below against {{ r.standard }}. It lists {{ r.counts.included }}
+{{ "finding" if r.counts.included == 1 else "findings" }}, grouped into {{ r.issues|length }} distinct
+{{ "issue" if r.issues|length == 1 else "issues" }}. Each issue states whether it came from an automated rule
+(axe-core) or from AI judgment, and how confident that source is.
+{% if r.counts.excluded %}{{ r.counts.excluded }} further {{ "finding was" if r.counts.excluded == 1 else "findings were" }}
+left out because {{ "it was" if r.counts.excluded == 1 else "they were" }} rejected or not yet reviewed.{% endif %}</p>
+<table>
+  <caption>Included findings by severity</caption>
+  <thead><tr><th scope="col">Severity</th><th scope="col">Distinct issues</th><th scope="col">Findings</th></tr></thead>
+  <tbody>
+  {% for s in severities %}
+    <tr><th scope="row">{{ s|capitalize }}</th><td>{{ r.issue_severity_counts[s] }}</td><td>{{ r.severity_counts[s] }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<h3>Pages audited</h3>
+<ul class="urls">{% for p in r.pages %}<li>{{ p }}</li>{% endfor %}</ul>
+</section>
+
+<section>
+<h2>Findings by WCAG criterion</h2>
+{% if r.issues %}
+<table>
+  <caption>Distinct issues ordered by success criterion</caption>
+  <thead><tr>
+    <th scope="col">Criterion</th><th scope="col">Issue</th><th scope="col">Severity</th><th scope="col">Source</th>
+    <th scope="col">Confidence</th><th scope="col">Pages affected</th><th scope="col">Status</th>
+  </tr></thead>
+  <tbody>
+  {% for i in r.issues %}
+    <tr>
+      <th scope="row">{{ i.criterion }} {{ i.criterion_name }} (Level {{ i.level }})</th>
+      <td>{{ i.rule_id }}</td><td>{{ i.severity|capitalize }}</td><td>{{ source_labels[i.source] }}</td>
+      <td>{{ i.confidence|capitalize }}</td><td>{{ i.urls|length }}</td>
+      <td>{% if i.unreviewed %}<span class="unreviewed">Unreviewed</span>{% else %}Approved{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No approved findings are included in this report.</p>
+{% endif %}
+</section>
+
+<section>
+<h2>Finding details</h2>
+{% for i in r.issues %}
+<section class="issue">
+  <h3>{{ loop.index }}. {{ i.criterion }} {{ i.criterion_name }}: {{ i.rule_id }}</h3>
+  {% if i.unreviewed %}<p class="unreviewed">Unreviewed: no reviewer has approved all of this issue's findings.</p>{% endif %}
+  <dl class="meta">
+    <dt>Success criterion</dt><dd>{{ i.criterion }} {{ i.criterion_name }}, Level {{ i.level }}</dd>
+    <dt>Section 508</dt><dd>{{ i.section_508 }}</dd>
+    <dt>Severity</dt><dd>{{ i.severity|capitalize }}</dd>
+    <dt>Source</dt><dd>{{ source_labels[i.source] }}</dd>
+    <dt>Confidence</dt><dd>{{ i.confidence|capitalize }}</dd>
+    <dt>Ticket</dt><dd>{% if i.ticket_ids %}{% for t in i.ticket_ids %}#{{ t }}{{ ", " if not loop.last }}{% endfor %}{% else %}None yet{% endif %}</dd>
+    <dt>Location</dt><dd>{{ i.elements|join(", ") }}</dd>
+  </dl>
+  <h4>What the problem is</h4>
+  <p>{{ i.explanation }}</p>
+  <h4>Pages affected ({{ i.urls|length }})</h4>
+  <ul class="urls">{% for u in i.urls %}<li>{{ u }}</li>{% endfor %}</ul>
+  {% if i.tickets %}
+  <h4>Suggested fix</h4>
+  <p>{{ i.fix_description }}</p>
+  {% if i.code_before %}<h4>Before</h4><pre>{{ i.code_before }}</pre>{% endif %}
+  <h4>After</h4><pre>{{ i.code_after }}</pre>
+  {% endif %}
+</section>
+{% endfor %}
+</section>
+
+<section>
+<h2>Limitations</h2>
+<p class="limits">{{ r.limitations }}</p>
+</section>
+</main>
+</body>
+</html>
