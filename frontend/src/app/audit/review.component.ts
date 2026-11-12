@@ -94,6 +94,16 @@ export class ReviewComponent {
     });
   }
 
+  /** First sentence of an explanation, so each card scans in one line; the rest sits behind "More detail". */
+  lead(text: string): string {
+    const m = text.match(/^.*?[.!?](?=\s|$)/s);
+    return m ? m[0] : text;
+  }
+
+  hasMore(text: string): boolean {
+    return this.lead(text).length < text.trim().length;
+  }
+
   statusLabel(s: ReviewStatus): string {
     return s === 'pending' ? 'Needs review' : s === 'approved' ? 'Approved' : 'Rejected';
   }

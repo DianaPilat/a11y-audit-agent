@@ -36,7 +36,7 @@
       <div role="group" aria-label="Filter findings by review status" class="filters">
         @for (f of filters; track f.value) {
           <button type="button" class="chip" [attr.data-filter]="f.value" [attr.aria-pressed]="filter() === f.value" (click)="filter.set(f.value)">
-            {{ f.label }} ({{ counts()[f.value] }})
+            {{ f.label }} <span class="count">{{ counts()[f.value] }}</span>
           </button>
         }
       </div>
@@ -53,23 +53,35 @@
     } @else {
       <ul class="plain list">
         @for (f of visible(); track f.id) {
-          <li class="card finding" [attr.data-status]="f.review_status">
+          <li class="card finding" [attr.data-status]="f.review_status" [attr.data-severity]="f.severity">
             <div class="row">
               <h3>{{ f.rule_id }}</h3>
-              <span class="badge sev-{{ f.severity }}">{{ f.severity }}</span>
+              <span class="badge sev-{{ f.severity }}"><span class="visually-hidden">Severity: </span>{{ f.severity }}</span>
             </div>
-            <p class="meta">WCAG {{ f.wcag_criterion }} · {{ f.url }}</p>
+            <p class="meta">WCAG {{ f.wcag_criterion }} · <span class="url">{{ f.url }}</span></p>
             <p><code>{{ f.element }}</code></p>
-            <p>{{ f.explanation }}</p>
+            <p class="lead">{{ lead(f.explanation) }}</p>
+            @if (hasMore(f.explanation)) {
+              <details>
+                <summary>More detail<span class="visually-hidden"> for {{ f.rule_id }} on {{ f.element }}</span></summary>
+                <p>{{ f.explanation }}</p>
+              </details>
+            }
             <div class="row actions">
               <span class="status" [attr.data-status]="f.review_status">{{ statusLabel(f.review_status) }}</span>
               <span class="buttons">
-                <button type="button" class="approve" [attr.aria-pressed]="f.review_status === 'approved'"
-                        [attr.aria-label]="'Approve finding ' + f.rule_id + ' on ' + f.element"
-                        (click)="set(f, f.review_status === 'approved' ? 'pending' : 'approved')">Approve</button>
-                <button type="button" class="reject" [attr.aria-pressed]="f.review_status === 'rejected'"
-                        [attr.aria-label]="'Reject finding ' + f.rule_id + ' on ' + f.element"
-                        (click)="set(f, f.review_status === 'rejected' ? 'pending' : 'rejected')">Reject</button>
+                @if (f.review_status === 'pending') {
+                  <button type="button" class="approve"
+                          [attr.aria-label]="'Approve finding ' + f.rule_id + ' on ' + f.element"
+                          (click)="set(f, 'approved')">Approve</button>
+                  <button type="button" class="reject"
+                          [attr.aria-label]="'Reject finding ' + f.rule_id + ' on ' + f.element"
+                          (click)="set(f, 'rejected')">Reject</button>
+                } @else {
+                  <button type="button" class="undo"
+                          [attr.aria-label]="'Undo decision on finding ' + f.rule_id + ' on ' + f.element"
+                          (click)="set(f, 'pending')">Undo</button>
+                }
               </span>
             </div>
           </li>

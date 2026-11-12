@@ -56,9 +56,11 @@ describe('ReviewComponent', () => {
     expect(req.request.body).toEqual({ status: 'approved' });
     req.flush(finding(1, { review_status: 'approved' }));
     fixture.detectChanges();
-    expect(el.querySelector('button.approve')?.getAttribute('aria-pressed')).toBe('true');
-    expect(el.textContent).toContain('Needs review (1)');
-    expect(el.textContent).toContain('Approved (1)');
+    expect(el.querySelector('li.finding .status')?.textContent).toContain('Approved');
+    expect(el.querySelector('li.finding button.undo')).toBeTruthy();
+    const chips = [...el.querySelectorAll('.chip')].map((c) => c.textContent!.replace(/\s+/g, ' ').trim());
+    expect(chips).toContain('Needs review 1');
+    expect(chips).toContain('Approved 1');
   });
 
   it('filters the list and orders by severity', () => {
@@ -71,6 +73,16 @@ describe('ReviewComponent', () => {
     el.querySelectorAll<HTMLButtonElement>('.chip')[3].click(); // Rejected
     fixture.detectChanges();
     expect(el.querySelectorAll('li.finding').length).toBe(1);
+  });
+
+  it('shows the first sentence and tucks the rest behind details', () => {
+    respond(audit({ status: 'done', phase: 'done' }), [
+      finding(1, { explanation: 'First point. Second point with more detail.' }), finding(2),
+    ]);
+    const [one, two] = [...el.querySelectorAll('li.finding')];
+    expect(one.querySelector('.lead')?.textContent).toBe('First point.');
+    expect(one.querySelector('details')).toBeTruthy();
+    expect(two.querySelector('details')).toBeNull();
   });
 
   it('shows the failure reason', () => {
