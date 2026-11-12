@@ -12,7 +12,8 @@ const audit = (over: Partial<Audit> = {}): Audit => ({
 });
 const finding = (id: number, over: Partial<Finding> = {}): Finding => ({
   id, audit_id: 'a1', url: 'http://x/', rule_id: 'image-alt', wcag_criterion: '1.1.1', severity: 'serious',
-  element: `img.n${id}`, explanation: 'Screen reader users hear nothing for this image.', review_status: 'pending', ...over,
+  element: `img.n${id}`, explanation: 'Screen reader users hear nothing for this image.', review_status: 'pending',
+  source: 'axe-core', confidence: 'high', ...over,
 });
 
 describe('ReviewComponent', () => {
