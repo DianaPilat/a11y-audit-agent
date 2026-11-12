@@ -7,6 +7,7 @@ a11y-browser MCP server and all findings through the in-process save_finding too
 """
 
 import asyncio
+import json
 import logging
 import re
 import sys
@@ -347,7 +348,7 @@ async def audit_site(
     else:
         crawl_reply = ""
     run.pages = parse_page_urls(crawl_reply, url, max_pages, seen_urls)
-    progress(phase="auditing", pages_total=len(run.pages))
+    progress(phase="auditing", pages_total=len(run.pages), pages=json.dumps(run.pages))
 
     summaries: list[str] = []
     for page in run.pages:

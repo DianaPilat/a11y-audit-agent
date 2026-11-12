@@ -133,13 +133,14 @@ CREATE TABLE IF NOT EXISTS audits (
     pages_total INTEGER NOT NULL DEFAULT 0,
     pages_done INTEGER NOT NULL DEFAULT 0,
     pages_failed INTEGER NOT NULL DEFAULT 0,
+    pages TEXT NOT NULL DEFAULT '[]',
     error TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 )
 """
 
 REVIEW_STATUSES = ("pending", "approved", "rejected")
-_AUDIT_FIELDS = {"status", "phase", "pages_total", "pages_done", "pages_failed", "error"}
+_AUDIT_FIELDS = {"status", "phase", "pages_total", "pages_done", "pages_failed", "pages", "error"}
 
 
 class FindingStore:
@@ -153,6 +154,8 @@ class FindingStore:
             self._db.execute("ALTER TABLE findings ADD COLUMN review_status TEXT NOT NULL DEFAULT 'pending'")
         self._migrate_findings()
         self._db.execute(_AUDITS_SCHEMA)
+        if not any(c["name"] == "pages" for c in self._db.execute("PRAGMA table_info(audits)")):
+            self._db.execute("ALTER TABLE audits ADD COLUMN pages TEXT NOT NULL DEFAULT '[]'")  # JSON list of crawled URLs
         if any(c["name"] == "finding_id" for c in self._db.execute("PRAGMA table_info(tickets)")):
             self._db.execute("DROP TABLE tickets")  # one-ticket-per-finding shape from before root-cause grouping
         self._db.executescript(_TICKETS_SCHEMA)
@@ -210,8 +213,11 @@ class FindingStore:
         self._db.commit()
         return self.get(audit_id, finding_id)
 
-    def create_audit(self, audit_id: str, url: str, max_pages: int) -> None:
-        self._db.execute("INSERT INTO audits (id, url, max_pages) VALUES (?, ?, ?)", (audit_id, url, max_pages))
+    def create_audit(self, audit_id: str, url: str, max_pages: int, created_at: str | None = None) -> None:
+        self._db.execute(
+            "INSERT INTO audits (id, url, max_pages, created_at) VALUES (?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))",
+            (audit_id, url, max_pages, created_at),
+        )
         self._db.commit()
 
     def update_audit(self, audit_id: str, **fields: Any) -> None:
