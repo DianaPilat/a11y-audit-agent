@@ -20,6 +20,7 @@ RUN_LIVE=1 pytest -m live                         # live Claude API tests (skipp
 python -m app.evals run --set seeded|bad|all [--only 09]   # costs API tokens; saves to evals/runs/
 python -m app.evals score ../evals/runs/<file>.json         # re-score a saved run, free
 python scripts/build_wcag_data.py                 # regenerate app/data/wcag21.json
+python -m app.report generate --fixture sample --format all --validate   # or --audit <id>; reports go to ../reports/ (needs Pango and veraPDF, see PLAN.md)
 ```
 
 Frontend (run from `frontend/`, Node >= 22.12): `npm start` (:4200, proxies `/api` -> `localhost:8000`), `npm test` (set `CHROME_BIN` if Chrome isn't found), `npm run build`.

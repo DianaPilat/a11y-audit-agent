@@ -160,14 +160,21 @@ Gate: public demo URL and one outside user.
 
 **Week 7 — Report output** (done before deploy; deploy moved to week 8)
 
-- [ ] Findings model additions: source, confidence, and status fields, plus a realistic sample audit fixture (about 15 findings) so reports can be generated without a crawl
-- [ ] Tagged PDF report from approved findings, validated with veraPDF
-- [ ] JSON and CSV exports from the same model
-- [ ] CLI command and FastAPI endpoint to generate a report from the fixture or the latest real audit
-- [ ] Export panel in the Angular UI (format choice, count of included vs. excluded findings), itself keyboard and screen reader friendly
-- [ ] Tests: each exporter against the fixture, unverified findings excluded when the flag is on, no secrets in output
-- [ ] Stretch: ACR (VPAT-style) export with editable roll-up thresholds
-- [ ] Run the report on one real audit and check the agent's output has every field the report needs
+- [x] Findings model additions: `source` and `confidence` (with migration; the auditor sets both), `audits.pages`, and a realistic sample audit fixture (15 issues, 62 findings) so reports can be generated without a crawl. Review status already existed (`review_status`).
+- [x] Tagged PDF report from approved findings (WeasyPrint, PDF/UA-1), validated with veraPDF: sample and real-audit PDFs pass; an untagged control fails.
+- [x] JSON and CSV exports from the same model (`app/report/`). The CSV ends with a "Limitations" row.
+- [x] CLI (`python -m app.report generate --fixture sample|--audit <id>`) and API (`GET /audits/{id}/report`, `/report/summary`)
+- [x] Export panel in the Angular UI (format choice, included vs. excluded counts, download), checked with axe-core in its spec
+- [x] Tests: each exporter against the fixture, unapproved and rejected excluded by default, the unreviewed flag adds only labeled pending findings, no secrets in output
+- [ ] Stretch: ACR (VPAT-style) export with editable roll-up thresholds. **Deferred**, not started.
+- [x] Run the report on one real audit and check the agent's output has every field the report needs (findings below)
+- [ ] Run the evals on the auditor prompt change (source/confidence) and log it in `evals/results.md`; not yet run because it costs API tokens
+
+Week 7 notes:
+
+- Unreviewed findings are a demo switch: `REPORT_INCLUDE_UNREVIEWED=1` on the server, `--include-unreviewed` on the CLI. The API refuses to include them unless the server flag is on. The UI does not offer it.
+- Weak fields in real agent output: confidence was "high" on 23 of 23 findings, so it carries no signal yet; each finding stores one selector, so a rule hit on many nodes of a page records only the first; the root-cause ticket grouping is per page, so one issue can have several tickets; the explanation is per finding and the PDF shows the first one for the issue.
+- veraPDF and WeasyPrint's native libraries (Pango via MSYS2 on Windows) must be installed to validate and render; the Docker image in week 8 needs Pango.
 
 **Week 8 — Deploy and finish**
 
