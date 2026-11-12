@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from claude_agent_sdk import SdkMcpTool, create_sdk_mcp_server, tool
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 from app.wcag import is_known_criterion
 
@@ -22,6 +22,7 @@ DEFAULT_DB_PATH = BACKEND / "data" / "findings.db"
 
 SERVER_NAME = "findings"
 SAVE_FINDING_TOOL = f"mcp__{SERVER_NAME}__save_finding"
+JUDGMENT_PREFIX = "judgment-"  # rule ids the auditor invents for checks axe cannot make
 
 
 class Severity(str, Enum):
@@ -31,6 +32,20 @@ class Severity(str, Enum):
     SERIOUS = "serious"
     MODERATE = "moderate"
     MINOR = "minor"
+
+
+class Source(str, Enum):
+    """How a finding was produced: a deterministic axe-core rule, or the model's own judgment."""
+
+    AXE = "axe-core"
+    AI = "ai-assessed"
+
+
+class Confidence(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    UNKNOWN = "unknown"  # only for rows saved before confidence was recorded; the auditor may not choose it
 
 
 class Finding(BaseModel):
@@ -45,6 +60,26 @@ class Finding(BaseModel):
     explanation: str = Field(
         min_length=20, description="Plain language: who is affected, why it matters, how to fix it"
     )
+    source: Source = Field(
+        description="axe-core for issues reported by an axe rule; ai-assessed for judgment-* rules the model decided itself"
+    )
+    confidence: Confidence = Field(
+        description="high = clear-cut, medium = likely but context could change it, low = a human should look closely"
+    )
+
+    @field_validator("confidence")
+    @classmethod
+    def _chosen_confidence(cls, value: Confidence) -> Confidence:
+        if value is Confidence.UNKNOWN:
+            raise ValueError("confidence must be high, medium or low")
+        return value
+
+    @model_validator(mode="after")
+    def _source_matches_rule(self) -> "Finding":
+        judged = self.rule_id.startswith(JUDGMENT_PREFIX)
+        if judged != (self.source is Source.AI):
+            raise ValueError(f"source must be {'ai-assessed' if judged else 'axe-core'} for rule {self.rule_id}")
+        return self
 
     @field_validator("wcag_criterion")
     @classmethod
@@ -64,6 +99,8 @@ CREATE TABLE IF NOT EXISTS findings (
     severity TEXT NOT NULL,
     element TEXT NOT NULL,
     explanation TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'axe-core',
+    confidence TEXT NOT NULL DEFAULT 'unknown',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (audit_id, url, rule_id, element)
 )
@@ -114,21 +151,32 @@ class FindingStore:
         self._db.execute(_SCHEMA)
         if not any(c["name"] == "review_status" for c in self._db.execute("PRAGMA table_info(findings)")):
             self._db.execute("ALTER TABLE findings ADD COLUMN review_status TEXT NOT NULL DEFAULT 'pending'")
+        self._migrate_findings()
         self._db.execute(_AUDITS_SCHEMA)
         if any(c["name"] == "finding_id" for c in self._db.execute("PRAGMA table_info(tickets)")):
             self._db.execute("DROP TABLE tickets")  # one-ticket-per-finding shape from before root-cause grouping
         self._db.executescript(_TICKETS_SCHEMA)
         self._db.commit()
 
+    def _migrate_findings(self) -> None:
+        """Add source and confidence to databases created before they existed. Idempotent."""
+        have = {c["name"] for c in self._db.execute("PRAGMA table_info(findings)")}
+        if "source" not in have:
+            self._db.execute("ALTER TABLE findings ADD COLUMN source TEXT NOT NULL DEFAULT 'axe-core'")
+            self._db.execute(f"UPDATE findings SET source='ai-assessed' WHERE rule_id LIKE '{JUDGMENT_PREFIX}%'")
+        if "confidence" not in have:  # old rows stay "unknown": confidence was never recorded, so don't invent it
+            self._db.execute("ALTER TABLE findings ADD COLUMN confidence TEXT NOT NULL DEFAULT 'unknown'")
+
     def save(self, audit_id: str, finding: Finding) -> tuple[int, bool]:
         """Store a finding. Returns (id, created); a repeat of the same rule + element is not duplicated."""
         cur = self._db.execute(
             "INSERT OR IGNORE INTO findings"
-            " (audit_id, url, rule_id, wcag_criterion, severity, element, explanation)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?)",
+            " (audit_id, url, rule_id, wcag_criterion, severity, element, explanation, source, confidence)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 audit_id, finding.url, finding.rule_id, finding.wcag_criterion,
                 finding.severity.value, finding.element, finding.explanation,
+                finding.source.value, finding.confidence.value,
             ),
         )
         self._db.commit()

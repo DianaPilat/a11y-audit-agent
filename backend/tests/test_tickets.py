@@ -10,6 +10,7 @@ def _finding(url="http://x", rule="image-alt", crit="1.1.1", sev="critical", ele
     return Finding(
         url=url, rule_id=rule, wcag_criterion=crit, severity=sev, element=element,
         explanation="Screen reader users hear no description of this image. Add alt text.",
+        source="axe-core", confidence="high",
     )
 
 

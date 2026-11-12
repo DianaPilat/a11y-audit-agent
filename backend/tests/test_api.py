@@ -7,6 +7,7 @@ from app.findings import Finding, FindingStore
 FINDING = Finding(
     url="http://x/", rule_id="image-alt", wcag_criterion="1.1.1", severity="critical",
     element="img.hero", explanation="Screen reader users hear no description of this image. Add alt text.",
+    source="axe-core", confidence="high",
 )
 
 

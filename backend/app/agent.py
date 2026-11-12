@@ -103,8 +103,11 @@ Steps:
 6. Call save_finding once per issue: the page url, rule id, WCAG criterion number
    (e.g. 1.1.1), severity (axe impact; for judgment issues use "moderate", or "serious"
    when the content is unusable), the affected element's selector, and a plain-language
-   explanation of who it affects and how to fix it. If it returns errors, fix the
-   fields and call it again.
+   explanation of who it affects and how to fix it. Also set source: "axe-core" for axe
+   violations, "ai-assessed" for every judgment-* rule. Set confidence: "high" when the
+   problem is clear-cut (most axe violations), "medium" when it is likely but context
+   could change the verdict, "low" when a human should look closely. If it returns
+   errors, fix the fields and call it again.
 
 Judgment checks (rule ids to use; flag only clear problems, never nitpick):
 - judgment-alt-text (1.1.1): alt text that is a file name, "image", "photo", "graphic",

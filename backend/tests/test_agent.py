@@ -106,6 +106,7 @@ def _fake_query(store, crawl_reply, calls, fail_on=()):
             Finding(
                 url=page, rule_id="image-alt", wcag_criterion="1.1.1", severity="critical",
                 element="img", explanation="Screen reader users get no description. Add alt text.",
+                source="axe-core", confidence="high",
             ),
         )
         yield _result(result=f"{page}: 1 finding")

@@ -26,6 +26,8 @@ export interface Finding {
   severity: Severity;
   element: string;
   explanation: string;
+  source: 'axe-core' | 'ai-assessed';
+  confidence: 'high' | 'medium' | 'low' | 'unknown';
   review_status: ReviewStatus;
 }
 
