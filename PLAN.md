@@ -14,15 +14,17 @@ Build an AI agent that audits a website against Section 508 and WCAG 2.1 AA, exp
 - Explain each issue in plain language, with severity and who it affects.
 - Draft a remediation ticket per finding with a suggested code fix, exported as Markdown or JSON.
 - A thin web UI: enter a URL, watch progress, approve or reject each finding.
+- A client-ready report of approved findings: a tagged (accessible) PDF, plus JSON and CSV exports. Stretch: an ACR in the VPAT format (see Reports).
 
 ### Out of scope for v1
 
 Do not build these unless this file is updated:
 
 - Legal compliance certification or replacing a manual audit.
-- PDFs, native mobile apps, video captions.
-- Pages behind a login.
+- Auditing PDF documents, native mobile apps, video captions.
+- Pages behind a login. Planned after v1: saved-session login (Playwright `storage_state`) with credentials kept out of the model's context and a deny-list for destructive actions.
 - Changing the audited site's code automatically.
+- Review by exception (auto-verifying high-confidence axe-core findings) and cross-page dedup beyond the existing root-cause grouping.
 
 ## Architecture
 
@@ -62,6 +64,17 @@ Flow:
 - `lookup_wcag` — retrieve the relevant WCAG success criterion
 - `save_finding` — validate and store a finding
 - `create_ticket` — store a remediation ticket for a finding
+
+### Reports
+
+Exporters read only from the findings store, never from a separate data path.
+
+- Only approved findings appear in client-facing output. A config flag controls this, so a demo can show unreviewed findings with a visible "Unreviewed" label.
+- Each finding carries its source (axe-core or AI-assessed) and a confidence level. Add these fields to the findings schema if they are missing.
+- Wording says "assessment", never "certification" or "compliant". Every report includes a limitations statement: automated and AI-assisted testing doesn't cover every criterion, and the report is not a legal determination of compliance.
+- PDF sections: executive summary (scope, standard, date, pages audited, counts by severity); findings table by WCAG criterion; finding detail with 508 mapping, explanation, and before/after code fix; limitations.
+- The PDF must be tagged and accessible (headings, table headers, document title and language, reading order, contrast). Validate it with veraPDF. If the chosen library can't produce a valid tagged PDF, pick another rather than ship an untagged one.
+- ACR (stretch): VPAT layout with cover information, evaluation methods, the five standard terms (Supports, Partially Supports, Does Not Support, Not Applicable, Not Evaluated), WCAG A and AA tables with remarks, Revised Section 508 chapters, and a disclaimer. Roll-up thresholds live in an editable config file. Criteria the audit didn't cover are Not Evaluated, never Supports. A criterion is marked Supports only if a person verified it.
 
 ### Stack
 
@@ -145,14 +158,22 @@ Gate: metrics reported; evals run on every change.
 
 Gate: public demo URL and one outside user.
 
-**Week 7 — Deploy**
+**Week 7 — Report output** (done before deploy; deploy moved to week 8)
+
+- [ ] Findings model additions: source, confidence, and status fields, plus a realistic sample audit fixture (about 15 findings) so reports can be generated without a crawl
+- [ ] Tagged PDF report from approved findings, validated with veraPDF
+- [ ] JSON and CSV exports from the same model
+- [ ] CLI command and FastAPI endpoint to generate a report from the fixture or the latest real audit
+- [ ] Export panel in the Angular UI (format choice, count of included vs. excluded findings), itself keyboard and screen reader friendly
+- [ ] Tests: each exporter against the fixture, unverified findings excluded when the flag is on, no secrets in output
+- [ ] Stretch: ACR (VPAT-style) export with editable roll-up thresholds
+- [ ] Run the report on one real audit and check the agent's output has every field the report needs
+
+**Week 8 — Deploy and finish**
 
 - [ ] Dockerize and deploy to a public demo URL
 - [ ] Optional: export tickets to GitHub Issues
-
-**Week 8 — Finish**
-
-- [ ] README with problem, approach, architecture, eval numbers, and limitations
+- [ ] README with problem, approach, architecture, eval numbers, sample report, and limitations
 - [ ] One real user runs it on their site
 
 ## Eval plan
