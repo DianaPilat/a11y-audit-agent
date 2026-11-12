@@ -7,8 +7,9 @@ from app.report.csv_export import to_csv
 from app.report.json_export import to_json
 from app.report.model import Report, build_report
 from app.report.pdf import render_pdf
+from app.report.xlsx_export import to_xlsx
 
-FORMATS = ("pdf", "json", "csv")
+FORMATS = ("pdf", "json", "csv", "xlsx")
 
 
 @dataclass
@@ -25,6 +26,8 @@ def render(report: Report, fmt: str) -> Rendered:
         return Rendered(to_json(report).encode("utf-8"), "application/json", "json")
     if fmt == "csv":  # BOM so Excel reads it as UTF-8
         return Rendered(to_csv(report).encode("utf-8-sig"), "text/csv; charset=utf-8", "csv")
+    if fmt == "xlsx":
+        return Rendered(to_xlsx(report), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx")
     raise ValueError(f"format must be one of {FORMATS}")
 
 

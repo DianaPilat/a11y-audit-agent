@@ -6,7 +6,8 @@ import { Finding, ReportFormat, ReportSummary } from './models';
 const FORMATS: { value: ReportFormat; label: string; hint: string }[] = [
   { value: 'pdf', label: 'PDF report', hint: 'Accessible tagged PDF for clients: summary, findings table, details and limitations.' },
   { value: 'json', label: 'JSON', hint: 'Every field of each included finding, for other tools.' },
-  { value: 'csv', label: 'CSV', hint: 'One row per issue, for spreadsheets.' },
+  { value: 'xlsx', label: 'Excel (.xlsx)', hint: 'One row per issue, formatted for reading in Excel: wrapped text and sized columns.' },
+  { value: 'csv', label: 'CSV', hint: 'One row per issue, plain text with no formatting, for importing into other tools.' },
 ];
 
 @Component({

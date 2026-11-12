@@ -22,18 +22,29 @@ def _cell(value: object) -> str:
     return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
 
 
+def issue_rows(report: Report) -> list[list[object]]:
+    rows = []
+    for i in report.issues:
+        fix = i.fix_description + (f"\nAfter: {i.code_after}" if i.code_after else "")
+        urls = " | ".join(i.urls[:FIRST_URLS]) + (f" | (+{len(i.urls) - FIRST_URLS} more)" if len(i.urls) > FIRST_URLS else "")
+        rows.append([
+            i.criterion, i.criterion_name, i.level, i.rule_id, i.severity, SOURCE_LABELS[i.source], i.confidence,
+            i.status, len(i.findings), len(i.urls), urls, i.explanation, fix, ", ".join(map(str, i.ticket_ids)),
+        ])
+    return rows
+
+
+def note_row(report: Report) -> list[object]:
+    """Last row: the limitations statement every report carries."""
+    note: list[object] = [""] * len(COLUMNS)
+    note[0], note[COLUMNS.index("explanation")] = NOTE_LABEL, f"{report.limitations} (Assessment date {report.audit_date}; {report.standard}.)"
+    return note
+
+
 def to_csv(report: Report) -> str:
     out = io.StringIO()
     writer = csv.writer(out, lineterminator="\r\n")
     writer.writerow(COLUMNS)
-    for i in report.issues:
-        fix = i.fix_description + (f"\nAfter: {i.code_after}" if i.code_after else "")
-        urls = " | ".join(i.urls[:FIRST_URLS]) + (f" | (+{len(i.urls) - FIRST_URLS} more)" if len(i.urls) > FIRST_URLS else "")
-        writer.writerow([_cell(v) for v in [
-            i.criterion, i.criterion_name, i.level, i.rule_id, i.severity, SOURCE_LABELS[i.source], i.confidence,
-            i.status, len(i.findings), len(i.urls), urls, i.explanation, fix, ", ".join(map(str, i.ticket_ids)),
-        ]])
-    note = [""] * len(COLUMNS)  # last row: the limitations statement every report carries
-    note[0], note[COLUMNS.index("explanation")] = NOTE_LABEL, f"{report.limitations} (Assessment date {report.audit_date}; {report.standard}.)"
-    writer.writerow(note)
+    for row in [*issue_rows(report), note_row(report)]:
+        writer.writerow([_cell(v) for v in row])
     return out.getvalue()

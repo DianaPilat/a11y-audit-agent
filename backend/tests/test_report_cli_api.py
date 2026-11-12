@@ -62,13 +62,13 @@ def test_api_summary_counts(client):
     c, _ = client
     s = c.get(f"/audits/{SAMPLE_AUDIT_ID}/report/summary").json()
     assert (s["total"], s["included"], s["excluded_unreviewed"], s["excluded_rejected"]) == (62, 53, 7, 2)
-    assert s["unreviewed_allowed"] is False and s["formats"] == ["pdf", "json", "csv"]
+    assert s["unreviewed_allowed"] is False and s["formats"] == ["pdf", "json", "csv", "xlsx"]
 
 
 def test_cli_fixture_all_formats(tmp_path, capsys):
     assert cli(["generate", "--fixture", "sample", "--format", "all", "--out", str(tmp_path)]) == 0
     names = {p.name for p in tmp_path.iterdir()}
-    assert names == {"sample-assessment.pdf", "sample-assessment.json", "sample-assessment.csv"}
+    assert names == {"sample-assessment.pdf", "sample-assessment.json", "sample-assessment.csv", "sample-assessment.xlsx"}
     assert json.loads((tmp_path / "sample-assessment.json").read_text(encoding="utf-8"))["report"]["counts"]["included"] == 53
     assert "included 53 of 62" in capsys.readouterr().out
 

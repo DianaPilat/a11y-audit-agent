@@ -185,3 +185,18 @@ def test_wording_never_says_certified_or_compliant(store):
     for text in texts:
         assert not re.search(r"certif|(?<!non-)\bcompliant\b|non-compliant", text, re.I)
         assert "assessment" in text.lower()
+
+
+# --- XLSX ---
+
+def test_xlsx_matches_csv_rows_and_wraps_long_cells(store):
+    import openpyxl
+
+    report = build_report(store, SAMPLE_AUDIT_ID)
+    ws = openpyxl.load_workbook(io.BytesIO(render(report, "xlsx").content)).active
+    assert [c.value for c in ws[1]] == COLUMNS
+    assert ws.max_row == 1 + len(report.issues) + 1  # header, issues, limitations
+    assert ws.cell(ws.max_row, 1).value == NOTE_LABEL
+    fix = ws.cell(2, COLUMNS.index("suggested_fix") + 1)
+    assert fix.alignment.wrap_text and ws.column_dimensions["M"].width >= 50
+    assert ws.freeze_panes == "A2"

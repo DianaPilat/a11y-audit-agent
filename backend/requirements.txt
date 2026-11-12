@@ -11,3 +11,4 @@ numpy
 weasyprint
 jinja2
 pypdf
+openpyxl

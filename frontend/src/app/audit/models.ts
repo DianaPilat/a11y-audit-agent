@@ -42,7 +42,7 @@ export const PHASE_LABELS: Record<string, string> = {
   failed: 'Failed',
 };
 
-export type ReportFormat = 'pdf' | 'json' | 'csv';
+export type ReportFormat = 'pdf' | 'json' | 'csv' | 'xlsx';
 
 /** Counts from GET /audits/{id}/report/summary: what an export would include or leave out. */
 export interface ReportSummary {

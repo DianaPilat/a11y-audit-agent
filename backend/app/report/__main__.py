@@ -1,4 +1,4 @@
-"""CLI: python -m app.report generate (--fixture sample | --audit <id>) --format pdf|json|csv|all"""
+"""CLI: python -m app.report generate (--fixture sample | --audit <id>) --format pdf|json|csv|xlsx|all"""
 
 import argparse
 import sys

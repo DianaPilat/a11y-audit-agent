@@ -43,7 +43,7 @@ describe('ExportPanelComponent', () => {
     await load();
     expect(el.querySelector('fieldset legend')?.textContent).toContain('Format');
     const radios = [...el.querySelectorAll<HTMLInputElement>('input[type=radio]')];
-    expect(radios.map((r) => r.value)).toEqual(['pdf', 'json', 'csv']);
+    expect(radios.map((r) => r.value)).toEqual(['pdf', 'json', 'xlsx', 'csv']);
     expect(radios[0].checked).toBeTrue();
     radios.forEach((r) => {
       expect(el.querySelector(`label[for="${r.id}"]`)).toBeTruthy();
@@ -98,7 +98,7 @@ describe('ExportPanelComponent', () => {
   it('is operable from the keyboard: every control is natively focusable', async () => {
     await load();
     const controls = el.querySelectorAll('input, button');
-    expect(controls.length).toBe(4);
+    expect(controls.length).toBe(5);
     controls.forEach((c) => expect((c as HTMLElement).tabIndex).toBeGreaterThanOrEqual(0));
   });
 

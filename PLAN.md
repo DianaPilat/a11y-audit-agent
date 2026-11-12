@@ -162,7 +162,7 @@ Gate: public demo URL and one outside user.
 
 - [x] Findings model additions: `source` and `confidence` (with migration; the auditor sets both), `audits.pages`, and a realistic sample audit fixture (15 issues, 62 findings) so reports can be generated without a crawl. Review status already existed (`review_status`).
 - [x] Tagged PDF report from approved findings (WeasyPrint, PDF/UA-1), validated with veraPDF: sample and real-audit PDFs pass; an untagged control fails.
-- [x] JSON and CSV exports from the same model (`app/report/`). The CSV ends with a "Limitations" row.
+- [x] JSON, CSV and formatted Excel (.xlsx) exports from the same model (`app/report/`). The CSV and XLSX end with a "Limitations" row.
 - [x] CLI (`python -m app.report generate --fixture sample|--audit <id>`) and API (`GET /audits/{id}/report`, `/report/summary`)
 - [x] Export panel in the Angular UI (format choice, included vs. excluded counts, download), checked with axe-core in its spec
 - [x] Tests: each exporter against the fixture, unapproved and rejected excluded by default, the unreviewed flag adds only labeled pending findings, no secrets in output

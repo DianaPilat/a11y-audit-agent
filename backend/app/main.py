@@ -122,7 +122,7 @@ async def report_summary(audit_id: str, request: Request, include_unreviewed: bo
 
 @app.get("/audits/{audit_id}/report")
 async def get_report(
-    audit_id: str, request: Request, format: Literal["pdf", "json", "csv"] = "pdf", include_unreviewed: bool | None = None
+    audit_id: str, request: Request, format: Literal["pdf", "json", "csv", "xlsx"] = "pdf", include_unreviewed: bool | None = None
 ) -> Response:
     store = get_store(request)
     _audit_or_404(store, audit_id)
