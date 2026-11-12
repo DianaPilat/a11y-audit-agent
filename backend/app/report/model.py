@@ -15,7 +15,7 @@ from app.report.redact import redact, redact_url
 from app.report.wcag_508 import section_508
 from app.wcag import load_criteria
 
-STANDARD = "WCAG 2.1 Level AA and Revised Section 508"
+STANDARD = "WCAG 2.1 Level AA and Section 508"
 SEVERITY_ORDER = ["critical", "serious", "moderate", "minor"]
 CONFIDENCE_ORDER = ["low", "medium", "high"]  # lowest first: a group is only as sure as its least sure finding
 SOURCE_LABELS = {"axe-core": "axe-core (automated rule)", "ai-assessed": "AI-assessed"}
