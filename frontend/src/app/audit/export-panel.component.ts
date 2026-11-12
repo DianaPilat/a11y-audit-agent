@@ -33,16 +33,19 @@ export class ExportPanelComponent {
   constructor() {
     effect(() => {
       this.findings();
-      const id = this.auditId();
-      const mine = ++this.request;
-      this.api.reportSummary(id).subscribe({
-        next: (s) => {
-          if (mine !== this.request) return; // a newer request superseded this one
-          this.summary.set(s);
-          this.summaryError.set('');
-        },
-        error: () => mine === this.request && this.summaryError.set('Could not load the export counts.'),
-      });
+      this.loadSummary();
+    });
+  }
+
+  loadSummary(): void {
+    const mine = ++this.request;
+    this.api.reportSummary(this.auditId()).subscribe({
+      next: (s) => {
+        if (mine !== this.request) return; // a newer request superseded this one
+        this.summary.set(s);
+        this.summaryError.set('');
+      },
+      error: () => mine === this.request && this.summaryError.set('Could not load the export counts.'),
     });
   }
 

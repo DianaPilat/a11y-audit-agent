@@ -78,6 +78,23 @@ describe('ExportPanelComponent', () => {
     expect(button.getAttribute('aria-disabled')).toBe('false');
   });
 
+  it('recovers from a failed counts request with Try again', async () => {
+    fixture = TestBed.createComponent(ExportPanelComponent);
+    fixture.componentRef.setInput('auditId', 'a1');
+    fixture.componentRef.setInput('findings', [] as Finding[]);
+    el = fixture.nativeElement;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    http.expectOne('/api/audits/a1/report/summary').flush('x', { status: 500, statusText: 'Server Error' });
+    fixture.detectChanges();
+    expect(el.querySelector('[role=alert]')?.textContent).toContain('Could not load the export counts');
+    el.querySelector<HTMLButtonElement>('button.retry')!.click();
+    http.expectOne('/api/audits/a1/report/summary').flush(summary());
+    fixture.detectChanges();
+    expect(el.querySelector('[role=alert]')).toBeNull();
+    expect(el.textContent).toContain('6 of 10 findings are included');
+  });
+
   it('is operable from the keyboard: every control is natively focusable', async () => {
     await load();
     const controls = el.querySelectorAll('input, button');

@@ -18,7 +18,8 @@
       <p class="warn">No findings are approved yet, so the report would list none.</p>
     }
   } @else if (summaryError()) {
-    <p class="error" role="alert">{{ summaryError() }}</p>
+    <p class="error" role="alert">{{ summaryError() }}
+      <button type="button" class="retry" (click)="loadSummary()">Try again</button></p>
   }
 
   <fieldset>
