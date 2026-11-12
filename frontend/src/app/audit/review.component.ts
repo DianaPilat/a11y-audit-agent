@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { EMPTY, catchError, forkJoin, interval, startWith, switchMap, takeWhile } from 'rxjs';
 
 import { ApiService } from './api.service';
+import { ExportPanelComponent } from './export-panel.component';
 import { Audit, Finding, PHASE_LABELS, ReviewStatus, SEVERITY_ORDER } from './models';
 
 type Filter = 'all' | ReviewStatus;
@@ -12,7 +13,7 @@ const POLL_MS = 2000;
 
 @Component({
   selector: 'app-review',
-  imports: [RouterLink],
+  imports: [RouterLink, ExportPanelComponent],
   templateUrl: './review.component.html',
 })
 export class ReviewComponent {

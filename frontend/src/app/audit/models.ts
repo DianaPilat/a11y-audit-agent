@@ -41,3 +41,16 @@ export const PHASE_LABELS: Record<string, string> = {
   done: 'Finished',
   failed: 'Failed',
 };
+
+export type ReportFormat = 'pdf' | 'json' | 'csv';
+
+/** Counts from GET /audits/{id}/report/summary: what an export would include or leave out. */
+export interface ReportSummary {
+  total: number;
+  included: number;
+  approved: number;
+  unreviewed_included: number;
+  excluded: number;
+  excluded_unreviewed: number;
+  excluded_rejected: number;
+}

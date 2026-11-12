@@ -1,0 +1,47 @@
+<section class="card" aria-labelledby="export-h">
+  <h2 id="export-h">Export report</h2>
+
+  @if (summary(); as s) {
+    <p id="export-counts">
+      <strong>{{ s.included }}</strong> of {{ s.total }} {{ s.total === 1 ? 'finding is' : 'findings are' }} included in the
+      report.
+      @if (s.excluded) {
+        <strong>{{ s.excluded }}</strong> {{ s.excluded === 1 ? 'is' : 'are' }} left out:
+        {{ s.excluded_unreviewed }} not yet reviewed and {{ s.excluded_rejected }} rejected.
+      }
+    </p>
+    @if (s.excluded_unreviewed) {
+      <p class="warn">Approve or reject the {{ s.excluded_unreviewed }} remaining finding{{ s.excluded_unreviewed === 1 ? '' : 's' }} to
+        include {{ s.excluded_unreviewed === 1 ? 'it' : 'them' }}. Only approved findings are exported.</p>
+    }
+    @if (!s.included) {
+      <p class="warn">No findings are approved yet, so the report would list none.</p>
+    }
+  } @else if (summaryError()) {
+    <p class="error" role="alert">{{ summaryError() }}</p>
+  }
+
+  <fieldset>
+    <legend>Format</legend>
+    @for (f of formats; track f.value) {
+      <div class="option">
+        <input type="radio" name="export-format" [id]="'fmt-' + f.value" [value]="f.value"
+               [checked]="format() === f.value" (change)="format.set(f.value)"
+               [attr.aria-describedby]="'fmt-hint-' + f.value">
+        <label [for]="'fmt-' + f.value">{{ f.label }}</label>
+        <span class="hint" [id]="'fmt-hint-' + f.value">{{ f.hint }}</span>
+      </div>
+    }
+  </fieldset>
+
+  <p>
+    <button type="button" class="primary" (click)="download()" [attr.aria-disabled]="busy()" [class.busy]="busy()">
+      Download {{ format().toUpperCase() }}
+    </button>
+  </p>
+
+  <p class="export-status" role="status">{{ status() }}</p>
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+</section>

@@ -29,6 +29,10 @@
     }
   </section>
 
+  @if (a.status === 'done') {
+    <app-export-panel [auditId]="a.id" [findings]="findings()" />
+  }
+
   <section aria-labelledby="findings-h">
     <h2 id="findings-h">Findings ({{ counts().all }})</h2>
 
