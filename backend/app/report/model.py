@@ -134,7 +134,10 @@ def build_report(
     tickets = store.list_tickets(audit_id)
     ticket_of = {f["id"]: t for t in tickets for f in t["findings"]}
 
-    included = [_clean(r) for r in rows if r["review_status"] in allowed]
+    included = [
+        {**_clean(r), "ticket_id": ticket_of[r["id"]]["id"] if r["id"] in ticket_of else None}
+        for r in rows if r["review_status"] in allowed
+    ]
     criteria = load_criteria()
     groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for f in included:
