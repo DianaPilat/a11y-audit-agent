@@ -68,7 +68,7 @@ Flow:
 | Layer           | Choice                                                                     |
 | --------------- | -------------------------------------------------------------------------- |
 | Backend         | Python + FastAPI                                                           |
-| Agent           | Claude Agent SDK (Python): Python orchestrator + 3 subagents                      |
+| Agent           | Claude Agent SDK (Python): Python orchestrator + 3 subagents               |
 | Browser         | Playwright (Python) + axe-core, behind our own MCP server (MCP Python SDK) |
 | Retrieval       | Local embeddings (sentence-transformers) over WCAG success criteria        |
 | Storage         | SQLite to start, Postgres when deployed                                    |
@@ -120,7 +120,7 @@ Gate: a 20-page site audited end to end.
 
 - [x] Ticket writer subagent with `create_ticket`: suggested code fix per finding; Markdown and JSON export
 - [x] Ticket writer groups findings by root cause before drafting tickets (for example, one missing `<main>` produces many 'region' nodes but should become one ticket)
-- [ ] Severity and plain-language explanations
+- [x] Severity and plain-language explanations
 - [x] Hooks that log each tool call with tokens and cost, per subagent
 - [x] Retries and timeouts in the MCP server
 
@@ -138,8 +138,8 @@ Gate: metrics reported; evals run on every change.
 **Week 6 — Review UI and iteration**
 
 - [x] Angular review screen: audit progress, findings list, approve or reject
-- [ ] Improve prompts against the evals; log each change and its effect in `evals/results.md`
-- [ ] Compare a single-agent run with the subagent design on cost and accuracy; record the result
+- [x] Improve prompts against the evals; log each change and its effect in `evals/results.md`
+- [x] Compare a single-agent run with the subagent design on cost and accuracy; record the result
 
 ### Phase 4 — Ship (weeks 7–8)
 

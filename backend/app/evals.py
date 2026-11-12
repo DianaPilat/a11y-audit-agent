@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from app.agent import DEFAULT_MODEL, audit_site
+from app.agent import DEFAULT_MODEL, audit_pages_single_agent, audit_site
 from app.findings import FindingStore
 
 EVALS = Path(__file__).resolve().parents[2] / "evals"
@@ -180,7 +180,7 @@ def _row(name: str, s: dict[str, Any]) -> str:
 
 def format_report(run: dict[str, Any]) -> str:
     """Markdown report for a saved run (only the sets it contains)."""
-    lines = [f"Model: {run.get('model', '?')} | {run.get('started', '')}"]
+    lines = [f"Model: {run.get('model', '?')} | Mode: {run.get('mode', 'subagents')} | {run.get('started', '')}"]
     cost = sum(p.get("cost_usd") or 0 for s in ("seeded", "bad") for p in run.get(s, {}).values())
     seconds = sum(p.get("seconds") or 0 for s in ("seeded", "bad") for p in run.get(s, {}).values())
     n = sum(len(run.get(s, {})) for s in ("seeded", "bad"))
@@ -233,19 +233,57 @@ async def _audit_one(url: str, model: str) -> dict[str, Any]:
         store.close()
 
 
-async def run_evals(sets: str = "all", only: str = "", model: str = DEFAULT_MODEL) -> dict[str, Any]:
-    run: dict[str, Any] = {"model": model, "started": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+async def _audit_many(urls: list[str], model: str) -> dict[str, dict[str, Any]]:
+    """Audit all pages with one agent in one context. Findings are grouped back by page url; cost and
+    time are one total, split evenly so the per-page report still adds up."""
+    store = FindingStore(":memory:")
+    start = time.monotonic()
+    error = None
+    findings: list[dict[str, Any]] = []
+    cost = None
+    try:
+        result = await audit_pages_single_agent(urls, model=model, store=store)
+        findings, cost = result.findings, result.cost_usd
+        if result.failed_pages:
+            error = "single-agent audit failed"
+    except Exception as e:
+        error = repr(e)
+    finally:
+        store.close()
+    seconds = round((time.monotonic() - start) / len(urls), 1)
+    by_url: dict[str, list[dict[str, Any]]] = {u: [] for u in urls}
+    for f in findings:
+        if f["url"] in by_url:
+            by_url[f["url"]].append({k: f[k] for k in ("rule_id", "wcag_criterion", "severity", "element", "explanation")})
+    return {
+        u: {"findings": fs, "cost_usd": cost / len(urls) if cost is not None else None, "seconds": seconds,
+            "error": error}
+        for u, fs in by_url.items()
+    }
+
+
+async def run_evals(
+    sets: str = "all", only: str = "", model: str = DEFAULT_MODEL, single_agent: bool = False
+) -> dict[str, Any]:
+    """With `single_agent`, each set is audited by one agent in one context instead of one auditor per page."""
+    run: dict[str, Any] = {
+        "model": model, "mode": "single-agent" if single_agent else "subagents",
+        "started": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
     if sets in ("seeded", "all"):
-        run["seeded"] = {}
-        for page in load_labels("labels.json"):
-            if only in page["file"]:
-                url = (EVALS / "pages" / page["file"]).as_uri()
-                run["seeded"][page["file"]] = await _audit_one(url, model)
+        files = [p["file"] for p in load_labels("labels.json") if only in p["file"]]
+        urls = {f: (EVALS / "pages" / f).as_uri() for f in files}
+        if single_agent and files:
+            many = await _audit_many(list(urls.values()), model)
+            run["seeded"] = {f: many[u] for f, u in urls.items()}
+        else:
+            run["seeded"] = {f: await _audit_one(u, model) for f, u in urls.items()}
     if sets in ("bad", "all"):
-        run["bad"] = {}
-        for page in load_labels("bad_labels.json"):
-            if only in page["url"]:
-                run["bad"][page["url"]] = await _audit_one(page["url"], model)
+        urls_bad = [p["url"] for p in load_labels("bad_labels.json") if only in p["url"]]
+        if single_agent and urls_bad:
+            run["bad"] = await _audit_many(urls_bad, model)
+        else:
+            run["bad"] = {u: await _audit_one(u, model) for u in urls_bad}
     return run
 
 
@@ -256,12 +294,13 @@ def main() -> None:
     r.add_argument("--set", choices=["seeded", "bad", "all"], default="all")
     r.add_argument("--only", default="", help="only pages whose file name or URL contains this")
     r.add_argument("--model", default=DEFAULT_MODEL)
+    r.add_argument("--single-agent", action="store_true", help="one agent audits all pages in one context")
     s = sub.add_parser("score", help="re-score a saved run without auditing")
     s.add_argument("file", type=Path)
     args = parser.parse_args()
 
     if args.cmd == "run":
-        run = asyncio.run(run_evals(args.set, args.only, args.model))
+        run = asyncio.run(run_evals(args.set, args.only, args.model, args.single_agent))
         RUNS.mkdir(exist_ok=True)
         out = RUNS / f"{run['started'].replace(':', '-')}.json"
         out.write_text(json.dumps(run, indent=2), encoding="utf-8")

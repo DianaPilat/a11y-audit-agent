@@ -1,4 +1,4 @@
-<p><a routerLink="/">&larr; New audit</a></p>
+<a routerLink="/" class="back">&larr; New audit</a>
 
 @if (loadError()) {
   <p class="error" role="alert">{{ loadError() }}</p>
@@ -10,7 +10,7 @@
   <section class="card" aria-labelledby="progress-h">
     <h2 id="progress-h">Audit progress</h2>
     <p>
-      <strong>{{ phaseLabel() }}</strong>
+      <span class="badge" [attr.data-phase]="a.status === 'failed' ? 'failed' : a.phase">{{ a.status === 'failed' ? 'Failed' : phaseLabel() }}</span>
       @if (a.status === 'running' && a.phase === 'auditing') {
         – {{ a.pages_done }} of {{ a.pages_total }} pages done
       }
@@ -35,7 +35,7 @@
     @if (counts().all) {
       <div role="group" aria-label="Filter findings by review status" class="filters">
         @for (f of filters; track f.value) {
-          <button type="button" class="chip" [attr.aria-pressed]="filter() === f.value" (click)="filter.set(f.value)">
+          <button type="button" class="chip" [attr.data-filter]="f.value" [attr.aria-pressed]="filter() === f.value" (click)="filter.set(f.value)">
             {{ f.label }} ({{ counts()[f.value] }})
           </button>
         }

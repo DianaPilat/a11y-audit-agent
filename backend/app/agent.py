@@ -118,13 +118,24 @@ Judgment checks (rule ids to use; flag only clear problems, never nitpick):
 - judgment-form-label (3.3.2, or 1.3.1 when no programmatic label): a field whose only
   label is a placeholder or title, or whose label text is vague ("Field 1", "Input").
 
-Skip an issue if axe already reported the same element. Do not invent issues: every
-judgment finding must cite an element from get_page_content.
+Skip an issue if axe already reported the same element, with one exception: axe's
+heading-order is a best-practice rule with no WCAG criterion of its own. Do not save it
+under that rule id. Report each skipped heading level as judgment-heading-structure
+(1.3.1) instead, one finding per skipped heading, using that heading's selector. Do not
+invent issues: every judgment finding must cite an element from get_page_content.
 
 Save axe issues for axe violations only, grouping nodes of the same rule into one
 finding with the first node's selector. Finish with one line: the page url and how many
 findings you saved. If there are no axe violations and no judgment issues, say so and
 save nothing.
+"""
+
+SINGLE_AGENT_NOTE = """
+
+You are given several pages, not one. Audit them one after another in the order given,
+following the steps above for each page (navigate, run_axe, get_page_content, ...). Use
+each page's own url in save_finding. Do not stop until every page has been audited.
+Finish with one line per page: the page url and how many findings you saved.
 """
 
 WRITER_PROMPT = """You write remediation tickets for the accessibility findings of one site audit. You are
@@ -217,6 +228,14 @@ def auditor_options(store: FindingStore, audit_id: str, model: str = DEFAULT_MOD
     )
 
 
+def single_agent_options(store: FindingStore, audit_id: str, pages: int, model: str = DEFAULT_MODEL) -> ClaudeAgentOptions:
+    """One agent that audits every page in a single context (the baseline for the subagent design)."""
+    options = auditor_options(store, audit_id, model)
+    options.system_prompt = AUDITOR_PROMPT + SINGLE_AGENT_NOTE
+    options.max_turns = AUDITOR_MAX_TURNS * pages
+    return options
+
+
 def writer_options(store: FindingStore, audit_id: str, model: str = DEFAULT_MODEL) -> ClaudeAgentOptions:
     return ClaudeAgentOptions(
         model=model,
@@ -276,6 +295,24 @@ async def _run(
             if message.result:
                 texts = [message.result]
     return "\n\n".join(texts).strip()
+
+
+async def audit_pages_single_agent(
+    pages: list[str], model: str = DEFAULT_MODEL, store: FindingStore | None = None, audit_id: str | None = None
+) -> AuditRun:
+    """Audit all `pages` in one agent run and one context, with no crawl and no tickets.
+
+    Compare with `audit_site`, which runs a fresh auditor per page."""
+    store = store or FindingStore()
+    run = AuditRun(url=pages[0], max_pages=len(pages), pages=list(pages), audit_id=audit_id or uuid.uuid4().hex)
+    prompt = "Audit these pages:\n" + "\n".join(f"- {p}" for p in pages)
+    try:
+        run.report = await _run(prompt, single_agent_options(store, run.audit_id, len(pages), model), run, "single_agent")
+    except Exception:
+        log.exception("single-agent audit failed")
+        run.failed_pages = list(pages)
+    run.findings = store.list(run.audit_id)
+    return run
 
 
 async def audit_site(
