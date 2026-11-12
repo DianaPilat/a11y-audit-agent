@@ -11,11 +11,14 @@ import uuid
 from typing import Literal
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from app.agent import DEFAULT_MAX_PAGES, audit_site
 from app.findings import FindingStore
+from app.report.config import include_unreviewed_default
+from app.report.export import FORMATS, render
+from app.report.model import build_report
 
 log = logging.getLogger("api")
 
@@ -98,3 +101,37 @@ async def review_finding(audit_id: str, finding_id: int, body: ReviewRequest, re
     if (finding := store.set_review_status(audit_id, finding_id, body.status)) is None:
         raise HTTPException(404, "finding not found")
     return finding
+
+
+def _include_unreviewed(requested: bool | None) -> bool:
+    """Unreviewed findings are a demo switch: requesting them needs REPORT_INCLUDE_UNREVIEWED on the server."""
+    if requested and not include_unreviewed_default():
+        raise HTTPException(403, "including unreviewed findings is disabled on this server")
+    return include_unreviewed_default() if requested is None else requested
+
+
+@app.get("/audits/{audit_id}/report/summary")
+async def report_summary(audit_id: str, request: Request, include_unreviewed: bool | None = None) -> dict:
+    """How many findings a report would include or leave out; feeds the export panel."""
+    store = get_store(request)
+    _audit_or_404(store, audit_id)
+    include = _include_unreviewed(include_unreviewed)
+    return {**build_report(store, audit_id, include).counts, "include_unreviewed": include,
+            "unreviewed_allowed": include_unreviewed_default(), "formats": list(FORMATS)}
+
+
+@app.get("/audits/{audit_id}/report")
+async def get_report(
+    audit_id: str, request: Request, format: Literal["pdf", "json", "csv"] = "pdf", include_unreviewed: bool | None = None
+) -> Response:
+    store = get_store(request)
+    _audit_or_404(store, audit_id)
+    report = build_report(store, audit_id, _include_unreviewed(include_unreviewed))  # reads the store on the loop thread
+    try:
+        rendered = await asyncio.to_thread(render, report, format)  # the PDF render is slow; the report is plain data
+    except OSError as e:  # WeasyPrint could not load its native libraries
+        log.exception("report render failed")
+        raise HTTPException(503, "report rendering is unavailable on this server") from e
+    name = f"accessibility-assessment-{audit_id[:8]}.{rendered.extension}"
+    return Response(rendered.content, media_type=rendered.media_type,
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
