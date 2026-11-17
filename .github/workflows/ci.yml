@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      # Pango is WeasyPrint's native dependency (PDF report tests).
+      - name: Install system libraries
+        run: sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0
+
+      # CPU-only torch keeps the sentence-transformers install small.
+      - name: Install Python dependencies
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+
+      - name: Install Chromium for Playwright
+        run: playwright install --with-deps chromium
+
+      - name: Cache embedding model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-all-MiniLM-L6-v2
+
+      # Live Claude API tests are skipped unless RUN_LIVE=1, so no API key is needed.
+      - name: Run tests
+        run: pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run build
+
+      # Karma's Chrome needs --no-sandbox on GitHub runners; a wrapper script adds it.
+      - name: Run component tests
+        run: |
+          printf '#!/bin/sh\nexec "%s" --no-sandbox "$@"\n' "$(which google-chrome)" > "$RUNNER_TEMP/chrome-nosandbox"
+          chmod +x "$RUNNER_TEMP/chrome-nosandbox"
+          CHROME_BIN="$RUNNER_TEMP/chrome-nosandbox" npm test -- --watch=false --browsers=ChromeHeadless
